@@ -1,9 +1,46 @@
 {
-  "name": "product-kit-plugin",
-  "version": "0.3.0",
-  "description": "Product kit: roadmap, protocol, QA, recovery and an agent orchestration runtime, as an MCP server and Claude Code plugin",
+  "name": "@samjuniors/helm",
+  "version": "0.4.0",
+  "description": "Helm project orchestration and MCP integration",
   "type": "module",
-  "bin": { "helm": "bin/helm.mjs" },
-  "engines": { "node": ">=18" },
-  "files": ["bin", "server", "engine", ".claude-plugin", ".mcp.json", "commands", "agents", "skills", "hooks", "README.md", "TODO-MAP.md"]
+  "license": "MIT",
+  "author": "samjuniors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samjuniors/Helm.git"
+  },
+  "bin": {
+    "helm": "./bin/helm.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node tests/update-test.mjs && node tests/release-test.mjs",
+    "check": "node scripts/check-release.mjs",
+    "pack:release": "node scripts/build-release.mjs",
+    "prepack": "node scripts/check-release.mjs"
+  },
+  "files": [
+    "LICENSE",
+    "CHANGELOG.md",
+    "README.md",
+    "TODO-MAP.md",
+    "bin",
+    "server",
+    "engine",
+    ".claude-plugin",
+    ".mcp.json",
+    "mcp_config.json",
+    "plugin.json",
+    "commands",
+    "agents",
+    "skills",
+    "hooks",
+    "rules",
+    "install.mjs",
+    "rename.mjs",
+    "update.mjs",
+    "download.mjs"
+  ]
 }

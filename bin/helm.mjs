@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { PLUGIN_ROOT, initProject, kitDirOf, resolveProject, readRuns, describeRun, approveRun, cancelRun, statusOf } from '../server/runtime.mjs';
+import { PLUGIN_ROOT, initProject, kitDirOf, resolveProject, readRuns, describeRun, approveRun, cancelRun, statusOf, upgradeProject, pluginVersion } from '../server/runtime.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const flags = {}, pos = [];
@@ -42,13 +42,20 @@ try {
     if (once) console.log(frame()); else { console.log(frame()); setInterval(() => process.stdout.write(frame()), every); await new Promise(() => {}); }
   } else if (cmd === 'cancel') {
     console.log(describeRun(cancelRun(project(), pos[0])));
+  } else if (cmd === 'upgrade-project') {
+    console.log(upgradeProject(flags.path || process.cwd(), { force: !!flags.force }));
+  } else if (cmd === 'version') {
+    console.log('Helm ' + pluginVersion());
+  } else if (cmd === 'download') {
+    const r = spawnSync(process.execPath, [path.join(PLUGIN_ROOT, 'download.mjs'), ...rest], { stdio: 'inherit' });
+    process.exit(r.status ?? 1);
   } else if (cmd === 'hook-recover') {
     const p = flags.path || process.env.CLAUDE_PROJECT_DIR || process.cwd();
     if (!existsSync(path.join(kitDirOf(path.resolve(p)), 'kit.mjs'))) { console.log('helm: no kit in this folder. To start one, ask: "set up the product kit for <name>" (tool kit_init).'); process.exit(0); }
     const r = spawnSync(process.execPath, [path.join(kitDirOf(path.resolve(p)), 'kit.mjs'), 'recover', '--hook'], { cwd: p, encoding: 'utf8' });
     console.log((r.stdout || r.stderr || '').trim());
   } else if (!cmd || cmd === 'help' || cmd === '--help') {
-    console.log(`helm\n  init [dir] --name NAME --brief TEXT   create the kit in a project\n  print-config [--host claude|codex|vscode|cursor]   MCP config for your tool\n  watch [--once] [--interval 2]   live view: where you are, helper runs and their logs\n  runs | approve <runId> | cancel <runId>   helper agent runs (approve is founder-only)\n  ack <KEY> --quote "..." | decide <ID> --quote "..." | milestone close <M> --quote "..."   founder-only, run in a terminal\n  anything else is passed to the project's kit.mjs (continue, recover, status, ...)`);
+    console.log(`helm\n  init [dir] --name NAME --brief TEXT   create the kit in a project\n  print-config [--host claude|codex|vscode|cursor]   MCP config for your tool\n  version | download [--version X.Y.Z] | upgrade-project [--path DIRECTORY]\n  watch [--once] [--interval 2]   live view: where you are, helper runs and their logs\n  runs | approve <runId> | cancel <runId>   helper agent runs (approve is founder-only)\n  ack <KEY> --quote "..." | decide <ID> --quote "..." | milestone close <M> --quote "..."   founder-only, run in a terminal\n  anything else is passed to the project's kit.mjs (continue, recover, status, ...)`);
   } else {
     const p = project();
     const r = spawnSync(process.execPath, [path.join(kitDirOf(p), 'kit.mjs'), cmd, ...rest], { cwd: p, stdio: 'inherit' });

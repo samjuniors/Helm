@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 export const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const ENGINE = path.join(PLUGIN_ROOT, 'engine');
 export const KIT_DIRNAME = '.agents';
+export const pluginVersion = () => JSON.parse(readFileSync(path.join(PLUGIN_ROOT, 'package.json'), 'utf8')).version;
 export const SERVER_NAME = 'helm';   // the name this plugin is registered under (rename.mjs changes it)
 const err = (m) => { const e = new Error(m); e.user = true; return e; };
 const rd = (f) => readFileSync(f, 'utf8');
@@ -31,7 +32,7 @@ const git = (cwd, args) => spawnSync('git', args, { cwd, encoding: 'utf8' });
 const commonDir = (project) => { const r = git(project, ['rev-parse', '--path-format=absolute', '--git-common-dir']); const d = (r.stdout || '').trim(); return d ? d : path.join(project, '.git'); };
 
 // Commands the model may run. ack and decide are deliberately absent: they record the founder's own words.
-export const ALLOWED = new Set(['continue', 'recover', 'status', 'next', 'resume', 'validate', 'render', 'doctor', 'claim', 'heartbeat', 'release', 'scaffold', 'done', 'note', 'team', 'checkpoint', 'land', 'sync', 'qa', 'milestone', 'layout', 'reconcile', 'ci', 'install-hook', 'adapt']);
+export const ALLOWED = new Set(['continue', 'recover', 'status', 'next', 'resume', 'validate', 'render', 'doctor', 'claim', 'heartbeat', 'release', 'scaffold', 'done', 'note', 'team', 'checkpoint', 'land', 'sync', 'qa', 'milestone', 'layout', 'reconcile', 'ci', 'install-hook', 'adapt', 'scan']);
 const LONG = new Set(['land', 'sync', 'ci', 'milestone', 'qa', 'checkpoint']);
 export function kitRun(project, command, args = []) {
   if (!ALLOWED.has(command)) throw err(`"${command}" is not available through the tools. ${['ack', 'decide'].includes(command) ? 'Founder decisions and acknowledgements are recorded by the founder in a terminal (helm ack / decide), with their own words.' : `Allowed: ${[...ALLOWED].join(', ')}`}`);
@@ -68,6 +69,7 @@ export function initProject({ path: p, project: name, brief = '', slices = [], g
   writeFileSync(path.join(kit, 'milestones.json'), JSON.stringify(ms, null, 2) + '\n');
   if (!existsSync(path.join(kit, 'kit.config.json'))) copyFileSync(path.join(ENGINE, 'template', 'kit.config.json'), path.join(kit, 'kit.config.json'));
   for (const d of DIRS) { mkdirSync(path.join(kit, d), { recursive: true }); writeFileSync(path.join(kit, d, '.gitkeep'), ''); }
+  writeFileSync(path.join(kit, 'origin.json'), JSON.stringify({ origin: 'plugin', pluginVersion: pluginVersion(), createdAt: new Date().toISOString() }, null, 2) + '\n');
   const skill = path.join(root, KIT_DIRNAME, 'skills', 'product-kit', 'SKILL.md');
   mkdirSync(path.dirname(skill), { recursive: true });
   writeFileSync(skill, `---\nname: product-kit\ndescription: Use for this project's roadmap, resuming work (recover, continue), landing steps, QA passes and founder decisions.\n---\n\n1. Read AGENTS.md first; it is binding.\n2. Stopped in the middle? Run \`node ${KIT_DIRNAME}/product-kit/kit.mjs recover\`. Otherwise run \`continue\` and do what it prints. The order of work is the active milestone.\n3. Follow ${KIT_DIRNAME}/product-kit/MASTER_PROMPT.md and PROTOCOL.md.\n`);
@@ -226,4 +228,38 @@ export function landRun(project, id) {
   if (hl.code !== 0) throw err(`not merged:\n${hl.out}`);
   run.landed = true; run.landedAt = new Date().toISOString(); saveRun(project, run);
   return hl.out;
+}
+
+// ---------- versioned upgrades; user-created roadmap, state and documentation stay untouched ----------
+const OWNED = ['kit.mjs', 'PROTOCOL.md', 'QUALITY_BAR.md', 'LAYOUT.md', 'CAPABILITIES.md', 'MASTER_PROMPT.md', 'README.md'];
+export function upgradeProject(p, { force = false } = {}) {
+  const project = resolveProject(p), kit = kitDirOf(project), marker = path.join(kit, 'origin.json');
+  let origin; try { origin = JSON.parse(rd(marker)); } catch { origin = null; }
+  if (origin?.origin !== 'plugin') throw err('Refusing to overwrite a kit not created by Helm (origin.json missing). Use its original updater.');
+  const current = pluginVersion();
+  if (origin.pluginVersion === current && !force) return 'Already at plugin version ' + current + '; nothing to do.';
+  const dirty = git(project, ['status', '--porcelain', '--', KIT_DIRNAME]).stdout.trim();
+  if (dirty) throw err('Commit changes inside .agents/ before upgrading; the upgrade will not mix with uncommitted work.');
+  const gates = JSON.parse(rd(path.join(kit, 'gates.json')));
+  const vars = { PROJECT: gates.project ?? path.basename(project), BRIEF: '' };
+  const backup = path.join(kit, 'archive', 'pre-upgrade-' + (origin.pluginVersion || 'unknown') + '-' + new Date().toISOString().replace(/[:.]/g, '-'));
+  mkdirSync(backup, { recursive: true });
+  for (const file of OWNED) {
+    const target = path.join(kit, file);
+    if (existsSync(target)) copyFileSync(target, path.join(backup, file));
+    const source = path.join(ENGINE, file);
+    if (existsSync(source)) writeFileSync(target, ['MASTER_PROMPT.md', 'README.md'].includes(file) ? sub(rd(source), vars) : rd(source));
+  }
+  runKit(project, ['render']);
+  const validation = runKit(project, ['validate']);
+  if (validation.code !== 0) {
+    for (const file of OWNED) if (existsSync(path.join(backup, file))) copyFileSync(path.join(backup, file), path.join(kit, file));
+    rmSync(backup, { recursive: true, force: true });
+    runKit(project, ['render']);
+    throw err('Upgrade failed validation; original engine restored:\n' + validation.out);
+  }
+  writeFileSync(marker, JSON.stringify({ ...origin, previousVersion: origin.pluginVersion, pluginVersion: current, upgradedAt: new Date().toISOString() }, null, 2) + '\n');
+  git(project, ['add', '-A', KIT_DIRNAME]);
+  const committed = git(project, ['commit', '-q', '-m', 'chore(helm): upgrade project kit to ' + current]).status === 0;
+  return 'Upgraded ' + origin.pluginVersion + ' -> ' + current + '. Engine files backed up to ' + path.relative(project, backup) + '; project roadmap and records preserved. ' + validation.out + (committed ? ' Committed.' : ' Commit manually.');
 }
