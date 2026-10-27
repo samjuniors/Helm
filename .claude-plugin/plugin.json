@@ -1,7 +1,15 @@
 {
   "name": "helm",
-  "version": "0.3.0",
-  "description": "A milestone roadmap, multi-agent protocol, git sync, QA, recovery and an orchestration runtime where the model decides when to spawn helper agents and the runtime runs them. Works on any project.",
-  "author": { "name": "helm" },
-  "keywords": ["roadmap", "agents", "orchestration", "qa", "git"]
+  "version": "0.4.0",
+  "description": "Project lifecycle, roadmap, multi-agent orchestration, QA and recovery",
+  "author": {
+    "name": "samjuniors"
+  },
+  "keywords": [
+    "mcp",
+    "orchestration",
+    "roadmap",
+    "git",
+    "quality"
+  ]
 }

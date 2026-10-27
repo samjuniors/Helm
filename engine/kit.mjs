@@ -1086,6 +1086,38 @@ const cmds = {
     console.log('NOT VERIFIED here: that each tool picks these files up. Reported conventions: Claude Code reads CLAUDE.md and .claude/; Codex reads AGENTS.md and config.toml; Antigravity reads AGENTS.md or GEMINI.md and .agents/. Commit these files.');
   },
 
+  scan(a) {
+    const has = (p) => existsSync(path.join(root, p));
+    const tracked = tryGit(['ls-files'], root).out.split('\n').filter(Boolean);
+    const branch = tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], root).out;
+    const L = ['Helm scan (read-only): ' + root, 'Git: ' + branch + '; ' + tracked.length + ' tracked files; ' + dirtyCount() + ' changed files'];
+    let pkg; try { pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')); } catch { pkg = null; }
+    const scripts = pkg?.scripts || {};
+    const checks = [];
+    for (const k of ['test', 'lint', 'typecheck', 'build']) {
+      if (scripts[k]) { L.push('Script ' + k + ': ' + scripts[k]); checks.push(k === 'test' ? 'npm test' : 'npm run ' + k); }
+      else L.push('Script ' + k + ': MISSING');
+    }
+    const testCount = tracked.filter(f => /\.(test|spec)\.[cm]?[jt]sx?$/.test(f) || /(^|\/)(tests?|__tests__|e2e)\//.test(f)).length;
+    const wfdir = path.join(root, '.github/workflows');
+    const workflows = existsSync(wfdir) ? readdirSync(wfdir).filter(f => /\.ya?ml$/.test(f)) : [];
+    const ignored = has('.gitignore') && readFileSync(path.join(root, '.gitignore'), 'utf8').includes('node_modules');
+    L.push('Tests: ' + testCount + ' test file(s). CI: ' + (workflows.join(', ') || 'none'));
+    L.push('Hygiene: node_modules ignored: ' + ignored + '; tracked .env: ' + tracked.some(f => /(^|\/)\.env$/.test(f)));
+    L.push('G1.1 tests: ' + (scripts.test && testCount ? 'likely present' : 'open'));
+    L.push('G1.2 CI: ' + (workflows.length ? 'a workflow exists; verify it' : 'open'));
+    L.push('G1.3 secrets: audit history and config (scan is not a guarantee)');
+    if (checks.length) {
+      L.push('Suggested "checks": ' + JSON.stringify(checks));
+      if (a.flags['write-config']) {
+        const target = existsSync(cfgFile) ? JSON.parse(readFileSync(cfgFile, 'utf8')) : {};
+        if (target.checks?.length) L.push('Existing checks preserved.');
+        else { target.checks = checks; writeFileSync(cfgFile, JSON.stringify(target, null, 2) + '\n'); L.push('Checks written to kit.config.json.'); }
+      }
+    }
+    console.log(L.join('\n'));
+  },
+
   recover(a) {
     const hook = !!a.flags.hook;
     const L = [];
@@ -1296,7 +1328,7 @@ function renderMilestones() {
 
 const [cmd, ...rest] = process.argv.slice(2);
 if (!cmd || !cmds[cmd]) {
-  console.log(`usage: node .agents/product-kit/kit.mjs <command>\n  continue | recover [--hook] | status | next [--lane L] [--n 4] | resume | validate | render | doctor [--strict]\n  qa start <M> | qa check <M> | note --doing --next | team <ID> | helper start|land|list | adapt [--host] [--mcp PATH] | checkpoint [--all] | reconcile | layout check|report|init | migrate-folder [--to .agents] | land <ID|QA-M> | sync | ci check | ci wait [branch] | install-hook\n  milestone status | verify <M> | ship <M> | close <M> --quote "..." [--dry-run]\n  claim <ID> --agent NAME [--takeover] [--base REF] | heartbeat <ID> | release <ID>\n  scaffold <ID> | done <ID> --evidence "..." | decide <ID> --quote "..." | ack <KEY> --quote "..."`);
+  console.log(`usage: node .agents/product-kit/kit.mjs <command>\n  continue | recover [--hook] | status | next [--lane L] [--n 4] | resume | validate | render | doctor [--strict]\n  qa start <M> | qa check <M> | note --doing --next | team <ID> | helper start|land|list | scan [--write-config] | adapt [--host] [--mcp PATH] | checkpoint [--all] | reconcile | layout check|report|init | migrate-folder [--to .agents] | land <ID|QA-M> | sync | ci check | ci wait [branch] | install-hook\n  milestone status | verify <M> | ship <M> | close <M> --quote "..." [--dry-run]\n  claim <ID> --agent NAME [--takeover] [--base REF] | heartbeat <ID> | release <ID>\n  scaffold <ID> | done <ID> --evidence "..." | decide <ID> --quote "..." | ack <KEY> --quote "..."`);
   process.exit(cmd ? 1 : 0);
 }
 const parsed = parse(rest);

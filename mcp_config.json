@@ -2,7 +2,9 @@
   "mcpServers": {
     "helm": {
       "command": "node",
-      "args": ["server/mcp.mjs"]
+      "args": [
+        "server/mcp.mjs"
+      ]
     }
   }
 }
