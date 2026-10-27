@@ -1,0 +1,7 @@
+{
+  "name": "helm-local",
+  "owner": { "name": "local" },
+  "plugins": [
+    { "name": "helm", "source": "./", "description": "Product kit: roadmap, protocol, QA, recovery and agent orchestration for any project" }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "product-kit-plugin",
+  "version": "0.3.0",
+  "description": "Product kit: roadmap, protocol, QA, recovery and an agent orchestration runtime, as an MCP server and Claude Code plugin",
+  "type": "module",
+  "bin": { "helm": "bin/helm.mjs" },
+  "engines": { "node": ">=18" },
+  "files": ["bin", "server", "engine", ".claude-plugin", ".mcp.json", "commands", "agents", "skills", "hooks", "README.md", "TODO-MAP.md"]
+}

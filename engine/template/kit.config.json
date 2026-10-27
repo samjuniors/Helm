@@ -1,0 +1,41 @@
+{
+  "mainBranch": "main",
+  "integrationBranch": "kit/integration",
+  "remote": "origin",
+  "checks": [],
+  "ci": {
+    "mode": "off",
+    "timeoutMinutes": 25,
+    "startWaitMinutes": 4,
+    "pollSeconds": 20
+  },
+  "lean": {
+    "maxFilesPerStep": 15,
+    "maxAddedLines": 800
+  },
+  "layout": {
+    "docRoots": [
+      "docs"
+    ],
+    "extraDocRoots": [],
+    "allowedTopLevel": []
+  },
+  "orchestrator": {
+    "approval": "auto",
+    "maxConcurrent": 2,
+    "maxPerStep": 3,
+    "maxPerDay": 12,
+    "timeoutMinutes": 30,
+    "roles": [
+      "researcher",
+      "tester",
+      "debugger",
+      "reviewer",
+      "implementer"
+    ],
+    "agent": {
+      "preset": "claude"
+    }
+  },
+  "secretScanIgnore": []
+}

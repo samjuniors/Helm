@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "project": "{{PROJECT}}",
+  "stale_claim_minutes": 30,
+  "lanes": [
+    "platform",
+    "security",
+    "frontend",
+    "quality",
+    "founder"
+  ],
+  "note": "Gate and step IDs are stable names, not an ordering. The order of work is the milestones; run 'continue'.",
+  "gates": [
+    {
+      "id": "G0",
+      "title": "Direction and decisions",
+      "requires": [],
+      "purpose": "Settle the decisions that block later work. Agents prepare options; only the founder decides.",
+      "steps": [
+        {
+          "id": "G0.1",
+          "title": "DECISION: product boundary and first release (who it is for, the one job, what is out)",
+          "lane": "founder",
+          "type": "decision",
+          "exit": "Founder decision recorded via 'decide'. VISION.md sections 'Who it is for', 'What it is not' and 'First release' are filled in and confirmed by the founder."
+        },
+        {
+          "id": "G0.2",
+          "title": "DECISION: stack, hosting, data store and monthly budget",
+          "lane": "founder",
+          "type": "decision",
+          "exit": "Founder decision recorded with a concrete value for each of stack, hosting, data store and budget; 'Decisions already made' in VISION.md updated."
+        }
+      ]
+    },
+    {
+      "id": "G1",
+      "title": "Foundation",
+      "requires": [],
+      "purpose": "The repository is trustworthy for agents and for CI before anything is built on it.",
+      "steps": [
+        {
+          "id": "G1.1",
+          "title": "One documented command runs every test, lint, typecheck and build; kit.config.json checks lists those commands",
+          "lane": "quality",
+          "type": "work",
+          "exit": "A documented command runs the whole test suite; its exit code is 0 on a clean tree and non-zero when a test is deliberately broken; kit.config.json \"checks\" lists the real commands that must pass before anything lands."
+        },
+        {
+          "id": "G1.2",
+          "title": "CI workflow runs the checks on pull requests and on pushes to kit/integration and step/**",
+          "lane": "platform",
+          "type": "work",
+          "exit": "A workflow runs install, lint, typecheck, build and tests, is green on the integration branch, and a failing step blocks; 'ci check' passes and ci.mode is set to \"wait\".",
+          "deps": [
+            "G1.1"
+          ]
+        },
+        {
+          "id": "G1.3",
+          "title": "Secret hygiene: .gitignore, .env.example, and a secret scan over the history",
+          "lane": "security",
+          "type": "work",
+          "exit": "No secret in the repository history (scan output attached); .env is ignored; .env.example lists every variable without values; any hit is rotated and recorded."
+        },
+        {
+          "id": "G1.4",
+          "title": "Setup guide: from a clean clone to a running app",
+          "lane": "quality",
+          "type": "work",
+          "exit": "docs/SETUP.md takes a clean clone to a running app with exact commands; a second session followed it from scratch and recorded PASS.",
+          "deps": [
+            "G1.1"
+          ]
+        }
+      ]
+    }
+  ]
+}

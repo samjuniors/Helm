@@ -1,0 +1,11 @@
+{
+  "name": "helm",
+  "displayName": "Helm",
+  "version": "0.3.0",
+  "description": "Milestone roadmap, multi-agent protocol, git sync, QA, recovery, and an agent orchestration runtime.",
+  "suggestedPrompts": [
+    "Initialize Helm product kit for a new project",
+    "Recover and continue the next milestone step",
+    "Check agent policy and past helper runs"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "helm",
+  "version": "0.3.0",
+  "description": "A milestone roadmap, multi-agent protocol, git sync, QA, recovery and an orchestration runtime where the model decides when to spawn helper agents and the runtime runs them. Works on any project.",
+  "author": { "name": "helm" },
+  "keywords": ["roadmap", "agents", "orchestration", "qa", "git"]
+}

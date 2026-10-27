@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "note": "Milestones are what the founder tests, in order. Add steps with kit_roadmap_add or by editing this file, then run render and validate.",
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "Baseline ready",
+      "purpose": "The repository is trustworthy for agents and for CI before anything new is built.",
+      "can_test": "Run every test with one command, see CI run, and start the app from a clean clone.",
+      "uses": [
+        "G0.1",
+        "G0.2",
+        "G1.1",
+        "G1.2",
+        "G1.3",
+        "G1.4"
+      ],
+      "founder_test": [
+        "Run the single test command from the setup guide; it prints counts and ends in success.",
+        "Break one test on purpose and run it again; it must fail.",
+        "Open a pull request and watch CI run the checks.",
+        "Start the app from a clean clone using docs/SETUP.md."
+      ],
+      "skips": [
+        "No new features."
+      ]
+    },
+    {
+      "id": "M1",
+      "title": "First usable slice",
+      "purpose": "The smallest thing the founder would call usable, as defined in VISION.md.",
+      "can_test": "Use the first slice end to end as the intended user would.",
+      "steps": [
+        {
+          "id": "M1.1",
+          "title": "Turn the first release in VISION.md into 3 to 6 concrete steps with exit evidence",
+          "lane": "quality",
+          "type": "work",
+          "exit": "milestones.json M1 holds 3 to 6 real steps (replacing this one), each with a lane and checkable exit evidence; validate passes; the founder confirmed the list.",
+          "slice_of": "",
+          "defers": "everything not in the first release",
+          "needs": [
+            "G0.1"
+          ]
+        }
+      ],
+      "founder_test": [
+        "Use the first slice end to end the way the intended user would; every step in the milestone's test script works."
+      ],
+      "skips": [
+        "Anything not in the first release."
+      ],
+      "uses": []
+    }
+  ]
+}
