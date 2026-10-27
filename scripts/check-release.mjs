@@ -6,5 +6,5 @@ for(const p of['plugin.json','.claude-plugin/plugin.json']){let x=j(p);if(x.vers
 if(!j('.mcp.json').mcpServers?.helm||!j('mcp_config.json').mcpServers?.helm)err.push('MCP registration missing');
 if(!rd('server/mcp.mjs').includes("const VERSION = '"+pkg.version+"';"))err.push('server version drift');
 if(!rd('CHANGELOG.md').includes('## '+pkg.version))err.push('changelog version missing');
-for(const p of['LICENSE','README.md','download.mjs','update.mjs','install.mjs','rename.mjs','tests/e2e.mjs','tests/update-test.mjs','.github/workflows/release.yml'])if(!existsSync(resolve(root,p)))err.push('missing '+p);
+for(const p of['LICENSE','README.md','download.mjs','update.mjs','install.mjs','rename.mjs','tests/e2e.mjs','SECURITY.md','CONTRIBUTING.md','tests/update-test.mjs','tests/init-safety-test.mjs','.github/workflows/release.yml'])if(!existsSync(resolve(root,p)))err.push('missing '+p);
 if(err.length){err.forEach(e=>console.error('FAIL '+e));process.exit(1)}console.log('Helm release metadata OK: '+pkg.version);

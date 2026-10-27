@@ -53,6 +53,8 @@ export function initProject({ path: p, project: name, brief = '', slices = [], g
   if (!/^[\w .&'-]{2,60}$/.test(projectName)) throw err('project name: 2 to 60 letters, digits, spaces or . & \' -');
   const isRepo = git(root, ['rev-parse', '--is-inside-work-tree']).stdout?.trim() === 'true';
   if (!isRepo) { if (!gitInit) throw err('not a git repository; pass gitInit true or run git init'); const g = git(root, ['init', '-b', 'main']); if (g.status !== 0) throw err(`git init failed: ${g.stderr}`); }
+  // Preserve all pre-existing user modifications and staging: do not auto-commit them.
+  const priorChanges = (git(root, ['status', '--porcelain', '--untracked-files=all']).stdout || '').trim();
   mkdirSync(kit, { recursive: true });
   const vars = { PROJECT: projectName, BRIEF: brief.trim() || '(not written yet: the founder describes what is being built here)' };
   for (const f of ['kit.mjs', 'PROTOCOL.md', 'QUALITY_BAR.md', 'LAYOUT.md', 'CAPABILITIES.md']) copyFileSync(path.join(ENGINE, f), path.join(kit, f));
@@ -81,10 +83,12 @@ export function initProject({ path: p, project: name, brief = '', slices = [], g
   const ad = runKit(root, ['adapt', '--host', 'all', '--mcp', path.join(PLUGIN_ROOT, 'server', 'mcp.mjs'), '--name', SERVER_NAME], { kit: path.join(kit, 'kit.mjs') });
   if (ad.code !== 0) throw err(`could not wire the host files:\n${ad.out}`);
   let committed = false;
-  git(root, ['add', '-A']);
-  const c = git(root, ['commit', '-q', '-m', 'chore: add product kit']);
-  committed = c.status === 0;
-  return { root, kit: path.relative(root, kit), validate: r2.out, committed, render: r1.out, adapt: ad.out };
+  if (!priorChanges) {
+    git(root, ['add', '-A']);
+    const c = git(root, ['commit', '-q', '-m', 'chore: add product kit']);
+    committed = c.status === 0;
+  }
+  return { root, kit: path.relative(root, kit), validate: r2.out, committed, commitSkipped: Boolean(priorChanges), render: r1.out, adapt: ad.out };
 }
 
 export function roadmapAdd({ path: p, milestone, steps }) {

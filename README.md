@@ -1,8 +1,8 @@
-# helm plugin
+# Helm — Product Orchestration Plugin
 
 Turn any new or existing software project into a milestone roadmap an AI agent can drive, with tests, CI, QA, recovery after any stop, and an orchestration runtime where **the model decides when and why to start helper agents and the runtime creates and runs them**.
 
-It is the SamjuniorsOS kit (v4 plus a fix) made generic: the engine is the same, the roadmap is a blank template filled from your brief.
+Helm supports starting a new project or introducing milestones into an existing Git repository. Its generated project state lives in `.agents/product-kit/` for backwards compatibility; this path is intentionally not renamed.
 
 ## What is inside
 | Folder | What |
@@ -47,6 +47,10 @@ or `"agent": { "command": "codex", "args": ["exec", "-"], "promptVia": "stdin" }
 - **Claude Code, as a plugin:** this folder is also a one-plugin marketplace (`.claude-plugin/marketplace.json`). In Claude Code: `/plugin marketplace add <path to this folder>` then `/plugin install helm@helm-local`. This adds the tools, a `SessionStart` hook that runs `recover`, the commands `/kit-init`, `/kit-recover`, `/kit-continue`, and helper sub-agents `kit-researcher`, `kit-tester`, `kit-debugger`, `kit-reviewer`.
 - **CLI only:** `node bin/helm.mjs init <folder> --name "My App" --brief "..."`, or `npm link` here and use `helm`.
 
+**Existing work safety:** Helm never silently commits pre-existing tracked or untracked changes on `init`. With a dirty repository, the generated files stay uncommitted for your review; with a clean repository, Helm makes its setup commit. Helm will not replace a pre-existing `.agents/product-kit/` engine.
+
+**Role compatibility:** `kit-{researcher,tester,debugger,reviewer}` are the canonical Claude plugin agent definitions. Older duplicate `helm-*` cards are preserved only under `docs/archive/` and are not installed as additional agents.
+
 ## Which tools it works in
 `kit_init` (or `adapt` in any project that has the kit) wires all of these in one go: an `AGENTS.md` block that tells every agent to run `recover` first, `CLAUDE.md` and `GEMINI.md` that import `AGENTS.md`, and the MCP server registered in each tool's project file (merged into existing files, never replaced).
 
@@ -62,7 +66,7 @@ Evidence: Codex MCP and AGENTS.md behaviour is from OpenAI's Codex docs; the Cla
 
 ## Updating and versioned downloads
 
-**Current version:** v0.4.0. A merged version is validated on Linux and Windows with Node 18 and 22. Once the CI passes on the main branch, the release workflow creates an immutable `vX.Y.Z` tag with ZIP and npm-compatible tarball downloads plus `SHA256SUMS`.
+**Current source version:** v0.4.0. Local Node 22 smoke tests have passed; cross-platform GitHub Actions verification remains pending until hosted runners execute. Do not assume the GitHub release exists until it appears on Releases. Once the CI passes on the main branch, the release workflow creates an immutable `vX.Y.Z` tag with ZIP and npm-compatible tarball downloads plus `SHA256SUMS`.
 
 Download from [GitHub Releases](https://github.com/samjuniors/Helm/releases), or use `node download.mjs --version 0.4.0 --asset zip --out .` (omit --version for latest). For this private repository authenticate with `gh auth login` or set `GH_TOKEN`. The download script verifies SHA256 before saving.
 
@@ -96,3 +100,8 @@ Verified (Linux, Node 22, MCP SDK 1.32.2 as the client, a stand-in for the agent
 - A spawned agent runs with your permissions; a worktree is not a sandbox (see TODO-MAP section G).
 - Long commands (`land` with CI waiting, `ship`) can exceed a client's tool timeout; the work continues, run `recover` to see the state.
 - The roadmap template is generic. The quality of the first milestone depends on the brief and on you confirming the steps.
+
+
+## Repository maintenance and release verification
+
+Run `npm run check` and `npm test` from the repository. The full MCP SDK e2e suite is `npm run test:integration` (requires access to install its test dependency). Publishing is automated only after the `main` CI test job succeeds: it produces a versioned ZIP, npm-compatible tarball and SHA-256 checksums. If GitHub Actions fails **before any step or runner is assigned**, investigate repository Actions/billing/runner availability rather than misreporting a passing test or creating a tag by hand. See `docs/RELEASING.md`.
