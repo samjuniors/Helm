@@ -1,6 +1,6 @@
 # helm plugin
 
-Turn any new software project into a milestone roadmap an AI agent can drive, with tests, CI, QA, recovery after any stop, and an orchestration runtime where **the model decides when and why to start helper agents and the runtime creates and runs them**.
+Turn any new or existing software project into a milestone roadmap an AI agent can drive, with tests, CI, QA, recovery after any stop, and an orchestration runtime where **the model decides when and why to start helper agents and the runtime creates and runs them**.
 
 It is the SamjuniorsOS kit (v4 plus a fix) made generic: the engine is the same, the roadmap is a blank template filled from your brief.
 
@@ -59,6 +59,16 @@ or `"agent": { "command": "codex", "args": ["exec", "-"], "promptVia": "stdin" }
 What works the same everywhere: `kit.mjs` (any agent that can run a shell command), the MCP server, and the `AGENTS.md` rule. What differs is the glue. Where a tool has no start-up hook, "run recover first" depends on the model following the rule, so a session that ignores it must be told "recover".
 
 Evidence: Codex MCP and AGENTS.md behaviour is from OpenAI's Codex docs; the Claude Code `CLAUDE.md` behaviour, the Antigravity file locations and the headless flags are from third-party documentation and from the ORBIT plugin's installer, not from the vendors' own pages. None of it has been run in the real tools by me.
+
+## Updating and versioned downloads
+
+**Current version:** v0.4.0. A merged version is validated on Linux and Windows with Node 18 and 22. Once the CI passes on the main branch, the release workflow creates an immutable `vX.Y.Z` tag with ZIP and npm-compatible tarball downloads plus `SHA256SUMS`.
+
+Download from [GitHub Releases](https://github.com/samjuniors/Helm/releases), or use `node download.mjs --version 0.4.0 --asset zip --out .` (omit --version for latest). For this private repository authenticate with `gh auth login` or set `GH_TOKEN`. The download script verifies SHA256 before saving.
+
+To install the downloaded ZIP, extract it, enter the `helm` folder, and run `node install.mjs`. To update an existing installation, run the **new version's** `node update.mjs --into /path/to/existing/helm --dry-run`, review, and then omit `--dry-run`. It makes a backup, preserves your custom server name and tests the upgraded server. To upgrade a project's generated engine without losing its roadmap/records, run `node bin/helm.mjs upgrade-project --path /path/to/project`. Unknown or separately managed kits are refused.
+
+To publish the next version, bump `package.json`, `plugin.json`, `.claude-plugin/plugin.json`, the MCP server VERSION, and add a changelog entry. Use a PR and merge; `main` CI publishes the release if its tag is not already present. npm publishing is not automatic; the tarball is available as a GitHub release asset. No GitHub release is a public download while the repository is private.
 
 ## Rename it
 `node rename.mjs --name my-name` (lowercase letters, digits, dashes). It changes the name your tools show, the MCP server key, the Claude Code plugin and marketplace names, the command-line tool (`bin/my-name.mjs`), and the name that new projects register. It leaves alone the `.agents/product-kit` folder inside your projects, the tool names (`kit_init`, `agent_spawn`, ...) and this folder's name. Afterwards remove the old registration (`claude mcp remove helm`, `codex mcp remove helm`) and run `node install.mjs` again. `--dry-run` shows what would change. The whole 46-check suite passes on a renamed copy. To register under a different name without renaming any file: `node install.mjs --name my-name`.

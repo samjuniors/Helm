@@ -17,7 +17,7 @@ const OLD = fs.existsSync(path.join(here, 'bin', 'product-kit.mjs')) ? 'product-
 if (!OLD) { console.error('cannot find the current name (bin/<name>.mjs)'); process.exit(1); }
 if (OLD === slug) { console.log(`Already named ${slug}.`); process.exit(0); }
 
-const PROTECT = [/product-kit-plugin/g, /(?:\.?agents?\/|KIT_DIRNAME\}\/)product-kit/g, /KIT_DIRNAME, 'product-kit'/g, /name: product-kit\\ndescription/g, /'skills', 'product-kit'/g].map((r) => new RegExp(r.source.replaceAll('product-kit', OLD), 'g'));
+const PROTECT = [/@samjuniors\\/helm/g, /product-kit-plugin/g, /(?:\.?agents?\/|KIT_DIRNAME\}\/)product-kit/g, /KIT_DIRNAME, 'product-kit'/g, /name: product-kit\\ndescription/g, /'skills', 'product-kit'/g].map((r) => new RegExp(r.source.replaceAll('product-kit', OLD), 'g'));
 const rewrite = (text) => {
   const saved = [];
   let t = text.replaceAll(`${OLD}-local`, `${slug}-local`);
