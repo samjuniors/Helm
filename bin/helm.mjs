@@ -15,7 +15,7 @@ const die = (m) => { console.error(`helm: ${m}`); process.exit(1); };
 try {
   if (cmd === 'init') {
     const r = initProject({ path: pos[0] || '.', project: flags.name, brief: typeof flags.brief === 'string' ? flags.brief : '' });
-    console.log(`Kit created in ${r.root}/${r.kit}. ${r.validate}${r.committed ? ' Committed.' : ' Not committed (set git user.name/email).'}\nNext: read TODO-MAP.md in the plugin folder, fill ${r.kit}/VISION.md, then run your agent and say "continue".`);
+    console.log(`Kit created in ${r.root}/${r.kit}. ${r.validate}${r.committed ? ' Committed.' : r.commitSkipped ? ' Not committed: existing changes were preserved; review and commit Helm files yourself.' : ' Not committed (check git user.name/email).'}\nNext: read TODO-MAP.md in the plugin folder, fill ${r.kit}/VISION.md, then run your agent and say "continue".`);
   } else if (cmd === 'print-config') {
     const host = flags.host || 'all', abs = server;
     const s = {

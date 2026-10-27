@@ -4,10 +4,10 @@ node_modules/
 *.zip
 dist/
 coverage/
-tests/package-lock.json
 .plugin-name
 *-backup-*/
 .DS_Store
 .env
 .env.*
 !.env.example
+.nyc_output/

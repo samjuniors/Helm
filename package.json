@@ -1,7 +1,7 @@
 {
   "name": "@samjuniors/helm",
   "version": "0.4.0",
-  "description": "Helm project orchestration and MCP integration",
+  "description": "Helm: project lifecycle, agent orchestration, Git workflows, QA and recovery for MCP-compatible assistants",
   "type": "module",
   "license": "MIT",
   "author": "samjuniors",
@@ -16,10 +16,11 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node tests/update-test.mjs && node tests/release-test.mjs",
+    "test": "node tests/init-safety-test.mjs && node tests/update-test.mjs && node tests/release-test.mjs",
     "check": "node scripts/check-release.mjs",
     "pack:release": "node scripts/build-release.mjs",
-    "prepack": "node scripts/check-release.mjs"
+    "prepack": "node scripts/check-release.mjs",
+    "test:integration": "npm install --prefix tests --no-audit --no-fund && node tests/e2e.mjs"
   },
   "files": [
     "LICENSE",
@@ -42,5 +43,9 @@
     "rename.mjs",
     "update.mjs",
     "download.mjs"
-  ]
+  ],
+  "homepage": "https://github.com/samjuniors/Helm#readme",
+  "bugs": {
+    "url": "https://github.com/samjuniors/Helm/issues"
+  }
 }
