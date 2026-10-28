@@ -17,3 +17,5 @@ gh release create "v$VERSION" "dist/helm-v$VERSION.zip" "dist/helm-v$VERSION.tgz
 ```
 
 Private repository releases are not publicly downloadable until the repository or its release distribution policy changes.
+
+For v0.4.1 onwards, run `npm run audit:repo` as an optional read-only Git hygiene check. Not-yet-created release tags are warnings. Never publish from the original `product-kit-plugin-v0.4.1.zip`: reconcile with Helm's existing `main` code and test the exact intended source.

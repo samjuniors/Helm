@@ -105,3 +105,9 @@ Verified (Linux, Node 22, MCP SDK 1.32.2 as the client, a stand-in for the agent
 ## Repository maintenance and release verification
 
 Run `npm run check` and `npm test` from the repository. The full MCP SDK e2e suite is `npm run test:integration` (requires access to install its test dependency). Publishing is automated only after the `main` CI test job succeeds: it produces a versioned ZIP, npm-compatible tarball and SHA-256 checksums. If GitHub Actions fails **before any step or runner is assigned**, investigate repository Actions/billing/runner availability rather than misreporting a passing test or creating a tag by hand. See `docs/RELEASING.md`.
+
+## v0.4.1 repository health check
+
+Run `npm run audit:repo` from a Git checkout to inspect repository metadata, versions, remote branch state, tags, Git-tracked files, obvious secret-like strings, and README quality. The audit is read-only and runs offline by default. A future tag (such as `v0.4.1`) not yet published is a warning, not a failure. `npm run check` remains the metadata check used during release packaging.
+
+The Helm npm package is now marked `private: true` to avoid unintended registry publishing. This does not prevent using the ZIP or `.tgz` downloadable packages. Existing MIT license and the `@samjuniors/helm`/`helm` identity are unchanged.
