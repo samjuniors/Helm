@@ -11,7 +11,7 @@ Use it for a brand-new project, an in-progress application, or maintenance of an
 [![MCP: stdio](https://img.shields.io/badge/MCP-stdio-5a67d8)](https://modelcontextprotocol.io/)
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-0366d6)](CONTRIBUTING.md)
 
-[Get started](#quick-start) · [Features](#what-helm-does) · [MCP setup](#connect-your-ai-tool) · [Contribute](CONTRIBUTING.md) · [Releases](https://github.com/samjuniors/Helm/releases) · [Support](#support-the-project)
+[Get started](#installation-and-quick-start) · [Features](#what-helm-does) · [MCP setup](#connect-your-ai-tool) · [Contribute](CONTRIBUTING.md) · [Releases](https://github.com/samjuniors/Helm/releases) · [Support](#support-the-project)
 
 > **Repository availability:** Helm is currently hosted in a private repository. Public forks, public downloads, stars, and community contributions require the maintainer to make the repository public. Documentation here prepares for that launch; it does not change visibility or access.
 
@@ -40,7 +40,7 @@ Helm can **coordinate** testing and release work; it does not guarantee the safe
 | Inspectable runs | Exposes run status, logs, cancellation, approval, and a terminal watcher |
 | Updates and releases | Includes guarded plugin/project upgrades, versioned archives, and SHA-256 verification |
 
-## Quick start
+## Installation and quick start
 
 **Requirements:** Node.js 18+, Git, and an MCP-capable coding environment (or a terminal for CLI-only use).
 
