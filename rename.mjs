@@ -15,7 +15,7 @@ const dry = argv.includes('--dry-run');
 if (!slug || slug.startsWith('--') || !/^[a-z][a-z0-9-]{1,30}$/.test(slug)) { console.error('usage: node rename.mjs --name <new-name>   (2 to 31 characters: lowercase letters, digits, dashes; starts with a letter)'); process.exit(1); }
 const OLD = fs.existsSync(path.join(here, 'bin', 'product-kit.mjs')) ? 'product-kit' : (fs.readdirSync(path.join(here, 'bin')).find((f) => f.endsWith('.mjs')) ?? '').replace(/\.mjs$/, '');
 if (!OLD) { console.error('cannot find the current name (bin/<name>.mjs)'); process.exit(1); }
-if (OLD === slug) { console.log(`Already named ${slug}.`); process.exit(0); }
+if (OLD === slug) { if (!dry) fs.writeFileSync(path.join(here, '.plugin-name'), slug + '\n'); console.log(`Already named ${slug}.`); process.exit(0); }
 
 const PROTECT = [new RegExp('@samjuniors/helm', 'g'), /product-kit-plugin/g, /(?:\.?agents?\/|KIT_DIRNAME\}\/)product-kit/g, /KIT_DIRNAME, 'product-kit'/g, /name: product-kit\\ndescription/g, /'skills', 'product-kit'/g].map((r) => new RegExp(r.source.replaceAll('product-kit', OLD), 'g'));
 const rewrite = (text) => {

@@ -4,7 +4,7 @@
 import readline from 'node:readline';
 import { initProject, roadmapAdd, kitRun, resolveProject, ALLOWED, loadPolicy, spawnAgent, readRuns, statusOf, describeRun, waitRun, cancelRun, landRun } from './runtime.mjs';
 
-const VERSION = '0.4.0';
+const VERSION = '0.4.1';
 const INSTRUCTIONS = `Product kit: a milestone roadmap, a multi-agent protocol, git sync, QA and recovery for any project.
 Start: if the project has no .agents/product-kit folder, call kit_init (ask the founder for a name and a short brief first). Then kit_run recover, then kit_run continue, and do what it prints.
 Spawning helpers is YOUR decision: before coding a step, weigh whether a researcher, tester, debugger or reviewer working at the same time is worth the cost; write the decision in the handoff. If yes, call agent_spawn with a role, a concrete task and a real reason. The runtime then creates the helper's worktree, runs the configured agent there, enforces limits, and only merges the helper's work (agent_land) after checking it stayed in scope. Default to working alone on small steps.

@@ -9,14 +9,14 @@ const p=JSON.parse(readFileSync(path.join(old,'package.json'),'utf8'));p.version
 mkdirSync(path.join(old,'bin'));writeFileSync(path.join(old,'bin/helm.mjs'),'// old');
 const dry=node(['update.mjs','--into',old,'--dry-run']);ok(dry.status===0&&/DRY RUN/.test(dry.stdout),'legacy 0.3 dry-run');
 const up=node(['update.mjs','--into',old]);ok(up.status===0,up.stderr||'update legacy install');
-ok(JSON.parse(readFileSync(path.join(old,'package.json'))).version==='0.4.0','plugin version advanced');
+ok(JSON.parse(readFileSync(path.join(old,'package.json'))).version==='0.4.1','plugin version advanced');
 ok(existsSync(path.join(old,'bin/helm.mjs')),'helm CLI installed');
 ok(node(['update.mjs','--into',old]).stdout.includes('Already at'),'same-version update no-op');
 const project=path.join(tmp,'project');mkdirSync(project);git(project,'init','-q','-b','main');
 const init=node([path.join(root,'bin/helm.mjs'),'init',project,'--name','Upgrade Test','--brief','existing product'],project);
 ok(init.status===0,init.stderr||'project init succeeded');
 const kit=path.join(project,'.agents/product-kit');ok(existsSync(path.join(kit,'origin.json')),'origin marker written');
-ok(JSON.parse(readFileSync(path.join(kit,'origin.json'))).pluginVersion==='0.4.0','origin has current version');
+ok(JSON.parse(readFileSync(path.join(kit,'origin.json'))).pluginVersion==='0.4.1','origin has current version');
 const sc=node([path.join(kit,'kit.mjs'),'scan'],project);ok(sc.status===0&&/scan/i.test(sc.stdout),'read-only scan');
 const before=readFileSync(path.join(kit,'milestones.json'),'utf8');
 const re=node([path.join(root,'bin/helm.mjs'),'upgrade-project','--path',project,'--force'],project);
