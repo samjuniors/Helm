@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read the contribution guide
+    url: https://github.com/samjuniors/Helm/blob/main/CONTRIBUTING.md
+    about: How to report problems and propose changes
+  - name: Security reporting instructions
+    url: https://github.com/samjuniors/Helm/blob/main/SECURITY.md
+    about: Do not report vulnerabilities or credentials in public issues

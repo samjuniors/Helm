@@ -1,113 +1,251 @@
-# Helm — Product Orchestration Plugin
+# Helm
 
-Turn any new or existing software project into a milestone roadmap an AI agent can drive, with tests, CI, QA, recovery after any stop, and an orchestration runtime where **the model decides when and why to start helper agents and the runtime creates and runs them**.
+**Plan the work. Coordinate AI agents. Keep the context. Ship with confidence.**
 
-Helm supports starting a new project or introducing milestones into an existing Git repository. Its generated project state lives in `.agents/product-kit/` for backwards compatibility; this path is intentionally not renamed.
+Helm is a lightweight, local-first **MCP project orchestrator** for software projects. It brings together milestones, Git-based work, optional specialist agents, quality gates, and a recovery trail so work can resume after interruptions.
 
-## What is inside
-| Folder | What |
-|---|---|
-| `server/mcp.mjs` | MCP server (stdio, no dependencies): 9 tools |
-| `server/runtime.mjs`, `server/runner.mjs` | Scaffolding, safe command runner, orchestration runtime, the detached process that runs each helper |
-| `engine/` | The kit that `kit_init` copies into a project (`.agents/product-kit/`): tool, protocol, quality bar, layout, roadmap template |
-| `bin/helm.mjs` | Command line: `init`, `print-config`, `watch`, `runs`, `approve`, `cancel`, and the founder-only `ack`, `decide`, `milestone close` |
-| `.claude-plugin/`, `.mcp.json`, `hooks/`, `commands/`, `agents/`, `skills/` | The Claude Code plugin wrapper |
-| `tests/e2e.mjs` | 46 checks through the official MCP SDK client |
-| `TODO-MAP.md` | Start here |
+Use it for a brand-new project, an in-progress application, or maintenance of an existing codebase. Helm works alongside your coding assistant; **it is not an IDE, an AI model, or a replacement for Git.**
 
-## The tools
-| Tool | Purpose |
-|---|---|
-| `kit_init` | Create the kit in a project from a name and a brief |
-| `kit_run` | Run an allowed kit command (`recover`, `continue`, `claim`, `done`, `land`, `qa`, `note`, ...). Never `ack`, `decide` or `milestone close` |
-| `kit_roadmap_add` | Add validated steps to a milestone; undoes itself if the roadmap would break |
-| `agent_policy` | Limits, configuration and past runs. Read before spawning |
-| `agent_spawn` | The model asks for a helper with a role, task and reason; the runtime validates, creates the worktree and starts the agent |
-| `agent_status`, `agent_wait` | Watch a run (log tail included) |
-| `agent_land` | Check scope and report, then merge a finished helper into its step |
-| `agent_cancel` | Stop a running helper |
+[![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE)
+[![Node.js 18+](https://img.shields.io/badge/Node.js-18%2B-339933)](https://nodejs.org/)
+[![MCP: stdio](https://img.shields.io/badge/MCP-stdio-5a67d8)](https://modelcontextprotocol.io/)
+[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-0366d6)](CONTRIBUTING.md)
 
-## How the split works
-The model decides: alone or helpers, which role, what task, why. The runtime decides nothing about the work; it enforces rules and does the doing: refuses a missing reason, an unclaimed step, a disallowed role, a run over the limits (`maxConcurrent`, `maxPerStep`, `maxPerDay`), or a spawn from inside a spawned agent; creates an isolated git worktree and branch; starts the configured agent command there with the role card on stdin; logs; kills at `timeoutMinutes`; and refuses to merge a run that failed, timed out, edited outside its role's files, or wrote no report. `"approval": "ask"` turns every spawn into a proposal only you can approve.
+[Get started](#installation-and-quick-start) · [Features](#what-helm-does) · [MCP setup](#connect-your-ai-tool) · [Contribute](CONTRIBUTING.md) · [Releases](https://github.com/samjuniors/Helm/releases) · [Support](#support-the-project)
 
-Configure in `.agents/product-kit/kit.config.json`:
-```json
-"orchestrator": {
-  "approval": "ask",
-  "maxConcurrent": 2, "maxPerStep": 3, "maxPerDay": 12, "timeoutMinutes": 30,
-  "roles": ["researcher", "tester", "debugger", "reviewer", "implementer"],
-  "agent": { "preset": "claude" }
-}
+> **Repository availability:** Helm is currently hosted in a private repository. Public forks, public downloads, stars, and community contributions require the maintainer to make the repository public. Documentation here prepares for that launch; it does not change visibility or access.
+
+## Why Helm?
+
+AI coding sessions can lose context, miss dependencies, duplicate work, or forget what was actually tested. Helm gives the project a durable workflow:
+
+- **Pick up where you left off.** Recover the current milestone, outstanding work, decisions, and recent agent activity.
+- **Work in achievable slices.** Manage a roadmap, dependencies, checks, and founder approvals rather than improvising the next task.
+- **Use specialist agents when useful.** Research, test, review, debug, or implement in separate Git worktrees, under configurable limits.
+- **Keep humans in control.** Approval mode, explicit founder-only decisions, Git history, and refusal to silently overwrite existing project kits.
+- **Run locally.** The MCP server uses Node.js, standard input/output, and no server-side service or cloud database.
+
+Helm can **coordinate** testing and release work; it does not guarantee the safety, quality, or correctness of the code produced by an agent.
+
+## What Helm does
+
+| Capability | How it helps |
+| --- | --- |
+| Project initialization | Creates a project-specific kit, starting vision, milestone roadmap, rules, and MCP adapter files |
+| Existing projects | Adds its kit without replacing existing source code; preserves pre-existing dirty Git changes on initialization |
+| Start, stop, resume | Uses `recover`, `continue`, checkpoints, and durable progress notes |
+| Roadmaps and quality gates | Tracks milestones, dependencies, acceptance evidence, and QA work |
+| Multi-agent orchestration | Supports researcher, tester, debugger, reviewer, and implementer roles with spawn limits |
+| Git-aware execution | Uses dedicated worktrees and checks role scope before landing agent work |
+| Inspectable runs | Exposes run status, logs, cancellation, approval, and a terminal watcher |
+| Updates and releases | Includes guarded plugin/project upgrades, versioned archives, and SHA-256 verification |
+
+## Installation and quick start
+
+**Requirements:** Node.js 18+, Git, and an MCP-capable coding environment (or a terminal for CLI-only use).
+
+Choose a persistent folder for Helm. On Windows, for example, `E:\SOFTWARE\Plugin\Helm`.
+
+```sh
+git clone https://github.com/samjuniors/Helm.git
+cd Helm
+node bin/helm.mjs version
+node install.mjs --dry-run
+node install.mjs
 ```
-or `"agent": { "command": "codex", "args": ["exec", "-"], "promptVia": "stdin" }`, or the `KIT_AGENT_CMD` environment variable as JSON.
 
-## Install
-- **One command:** `node install.mjs` (self-test, then `claude mcp add` and `codex mcp add` for the tools it finds). The two commands are the documented ones for those tools; the installer itself was tested here against stand-in `claude` and `codex` programs, not the real ones.
-- **Any MCP tool:** `node bin/helm.mjs print-config [--host claude|codex|vscode|cursor]`, paste the snippet, restart.
-- **Claude Code, as a plugin:** this folder is also a one-plugin marketplace (`.claude-plugin/marketplace.json`). In Claude Code: `/plugin marketplace add <path to this folder>` then `/plugin install helm@helm-local`. This adds the tools, a `SessionStart` hook that runs `recover`, the commands `/kit-init`, `/kit-recover`, `/kit-continue`, and helper sub-agents `kit-researcher`, `kit-tester`, `kit-debugger`, `kit-reviewer`.
-- **CLI only:** `node bin/helm.mjs init <folder> --name "My App" --brief "..."`, or `npm link` here and use `helm`.
+The installer checks that Helm's MCP server starts, then registers with **Claude Code and/or Codex if those CLIs are available**. To install for one supported tool, use `node install.mjs --host claude` or `--host codex`.
 
-**Existing work safety:** Helm never silently commits pre-existing tracked or untracked changes on `init`. With a dirty repository, the generated files stay uncommitted for your review; with a clean repository, Helm makes its setup commit. Helm will not replace a pre-existing `.agents/product-kit/` engine.
+For a **new app**, from the Helm folder:
 
-**Role compatibility:** `kit-{researcher,tester,debugger,reviewer}` are the canonical Claude plugin agent definitions. Older duplicate `helm-*` cards are preserved only under `docs/archive/` and are not installed as additional agents.
+```sh
+node bin/helm.mjs init ../hello-helm --name "Hello Helm" --brief "A small task-tracking app for a single user."
+node bin/helm.mjs recover --path ../hello-helm
+node bin/helm.mjs continue --path ../hello-helm
+```
 
-## Which tools it works in
-`kit_init` (or `adapt` in any project that has the kit) wires all of these in one go: an `AGENTS.md` block that tells every agent to run `recover` first, `CLAUDE.md` and `GEMINI.md` that import `AGENTS.md`, and the MCP server registered in each tool's project file (merged into existing files, never replaced).
+For an **existing repository**, commit or back up your work first, then run the same `init` command with its existing directory. Helm does **not** auto-commit an existing repository that already contains uncommitted work. Inspect the proposed kit files before committing them. Helm refuses to overwrite a project kit it already manages.
 
-| Tool | Reads the rules from | MCP tools via | Recovers at session start | Helper agents |
-|---|---|---|---|---|
-| Claude Code (CLI, desktop) | `CLAUDE.md` (it does **not** read `AGENTS.md`; the import line fixes that) | project `.mcp.json`, or `claude mcp add`, or the plugin | hook in `.claude/settings.json` (SessionStart) | `.claude/agents/kit-*.md`, or this runtime with `claude -p` |
-| Codex (CLI, desktop app, IDE extension) | `AGENTS.md` | `config.toml`, shared by all three; project `.codex/config.toml` only for **trusted** projects | no hook: the `AGENTS.md` rule tells it to run `recover` first | this runtime with `codex exec` |
-| Antigravity (app, `agy` CLI) | `AGENTS.md` and `GEMINI.md` | `.agents/mcp_config.json` (or the user-level `~/.gemini/antigravity/mcp_config.json`) | no hook: the `AGENTS.md` rule | `.agents/agents/kit-*.md` (its own sub-agents); this runtime only with a custom command |
+**Where is the project data?** Helm keeps generated engine files and project records at `.agents/product-kit/` for compatibility with existing installations. The name is intentionally retained.
 
-What works the same everywhere: `kit.mjs` (any agent that can run a shell command), the MCP server, and the `AGENTS.md` rule. What differs is the glue. Where a tool has no start-up hook, "run recover first" depends on the model following the rule, so a session that ignores it must be told "recover".
+For a guided checklist, see [TODO-MAP.md](TODO-MAP.md).
 
-Evidence: Codex MCP and AGENTS.md behaviour is from OpenAI's Codex docs; the Claude Code `CLAUDE.md` behaviour, the Antigravity file locations and the headless flags are from third-party documentation and from the ORBIT plugin's installer, not from the vendors' own pages. None of it has been run in the real tools by me.
+## How it works
 
-## Updating and versioned downloads
+```text
+You + your coding assistant
+            |
+       Helm MCP tools
+            |
+    Project orchestration
+     /       |         \
+ Roadmap   Git/QA     Agent policy
+   |         |             |
+ Milestones Checks     Optional helpers
+   |         |          in worktrees
+   +---------+-------------+
+            |
+   Recover / continue / notes
+            |
+   .agents/product-kit/
+```
 
-**Current source version:** v0.4.0. Local Node 22 smoke tests have passed; cross-platform GitHub Actions verification remains pending until hosted runners execute. Do not assume the GitHub release exists until it appears on Releases. Once the CI passes on the main branch, the release workflow creates an immutable `vX.Y.Z` tag with ZIP and npm-compatible tarball downloads plus `SHA256SUMS`.
+**The assistant proposes work; Helm enforces configured execution rules.** A helper is started only after the assistant supplies a role, task, and reason, and the runtime accepts the request. Helpers run using the configured external agent command. If approval mode is set to `ask`, a human must approve the spawn.
 
-Download from [GitHub Releases](https://github.com/samjuniors/Helm/releases), or use `node download.mjs --version 0.4.0 --asset zip --out .` (omit --version for latest). For this private repository authenticate with `gh auth login` or set `GH_TOKEN`. The download script verifies SHA256 before saving.
+The MCP server currently exposes **nine tools**:
 
-To install the downloaded ZIP, extract it, enter the `helm` folder, and run `node install.mjs`. To update an existing installation, run the **new version's** `node update.mjs --into /path/to/existing/helm --dry-run`, review, and then omit `--dry-run`. It makes a backup, preserves your custom server name and tests the upgraded server. To upgrade a project's generated engine without losing its roadmap/records, run `node bin/helm.mjs upgrade-project --path /path/to/project`. Unknown or separately managed kits are refused.
+| Tool | Responsibility |
+| --- | --- |
+| `kit_init` | Initialize the kit in a project |
+| `kit_run` | Invoke permitted project workflow commands |
+| `kit_roadmap_add` | Add roadmap steps with validation |
+| `agent_policy` | Inspect agent configuration and limits |
+| `agent_spawn` | Request an optional helper agent |
+| `agent_status` | Check an agent's status and logs |
+| `agent_wait` | Wait for an agent run |
+| `agent_land` | Validate scope and merge finished helper work |
+| `agent_cancel` | Stop an agent run |
 
-To publish the next version, bump `package.json`, `plugin.json`, `.claude-plugin/plugin.json`, the MCP server VERSION, and add a changelog entry. Use a PR and merge; `main` CI publishes the release if its tag is not already present. npm publishing is not automatic; the tarball is available as a GitHub release asset. No GitHub release is a public download while the repository is private.
+Some actions, including founder acknowledgements, decisions, and closing milestones, are intentionally **not available to the AI through MCP**. The founder records them in a terminal.
 
-## Rename it
-`node rename.mjs --name my-name` (lowercase letters, digits, dashes). It changes the name your tools show, the MCP server key, the Claude Code plugin and marketplace names, the command-line tool (`bin/my-name.mjs`), and the name that new projects register. It leaves alone the `.agents/product-kit` folder inside your projects, the tool names (`kit_init`, `agent_spawn`, ...) and this folder's name. Afterwards remove the old registration (`claude mcp remove helm`, `codex mcp remove helm`) and run `node install.mjs` again. `--dry-run` shows what would change. The whole 46-check suite passes on a renamed copy. To register under a different name without renaming any file: `node install.mjs --name my-name`.
+## Connect your AI tool
 
-## Antigravity (app and IDE)
-Everything below follows the ORBIT plugin's own instructions for Antigravity 2.0 Desktop plus third-party documentation; I could not run Antigravity, and I do not know whether the IDE and the agent app differ.
-1. Keep this folder on a permanent path (for example on your SSD).
-2. In the project: for a **new** project run `node bin/helm.mjs init . --name "My App" --brief "..."` (this also writes the Antigravity files). For a project that already has the kit run `node .agents/product-kit/kit.mjs adapt --host antigravity --mcp "<full path>\server\mcp.mjs"`. These write `GEMINI.md`, `.agents/mcp_config.json` (merged with anything already there, such as ORBIT) and the sub-agents `.agents/agents/kit-*.md`.
-3. Reopen the project in Antigravity (or reload the app).
-4. Open **Settings > Customizations > Installed MCP Servers**, refresh, and look for `helm` with nine tools. The sub-agents `kit-researcher`, `kit-tester`, `kit-debugger` and `kit-reviewer` should appear in the agent selector. If nothing appears, restart the app; ORBIT's README says to confirm that the workspace `.agents/mcp_config.json` is loaded.
-5. Ask the agent: "call agent_policy". It should answer with the limits and the run list.
+| Environment | Integration | Current verification |
+| --- | --- | --- |
+| Claude Code | MCP registration; optional local plugin with hooks, commands, and role cards | MCP adapter tested with stand-ins; live CLI/plugin behavior needs host-side validation |
+| OpenAI Codex | MCP registration using CLI or configuration | MCP adapter available; real Codex integration needs host-side validation |
+| Antigravity | Project-level agent/rules files and MCP config | Generated adapter available; real-host behavior needs validation |
+| VS Code / Cursor | Printed stdio MCP configuration | Configuration examples available; verify in your client |
+| Other MCP clients | Standard stdio server at `server/mcp.mjs` | Compatibility depends on the client's MCP implementation |
 
-## See it working
-- **The tool's own list:** Claude Code `/mcp`; Codex `codex mcp list`; Antigravity the Installed MCP Servers panel. Each should show the server and its nine tools.
-- **A live view in a terminal** (refreshes every two seconds): `node bin/helm.mjs watch --path <project>`. It shows where you are (finished, in progress, next, last events and notes), every helper run with its status and elapsed time, and the last log lines of the runs in progress. `--once` prints one frame.
-- **The evidence trail:** `node .agents/product-kit/kit.mjs recover` (last events with the spawn reasons), `git worktree list` (each helper has its own folder), `.git/kit/agents/<run>.log` (the helper's full output).
-- There is no graphical dashboard; "visible" means the terminal view plus each tool's own panels.
+Get a configuration snippet:
 
-## Status: what is verified and what is not
-Verified (Linux, Node 22, MCP SDK 1.32.2 as the client, a stand-in for the agent CLI; 46 checks): the whole protocol handshake and all nine tools; init and validation; roadmap edits with rollback; refusal of founder-only commands; spawn rules; a real child process started, logged, waited on, landed after scope and report checks, with the helper worktree and branch removed; refusal of out-of-scope edits, failed runs, over-limit spawns, nested spawns; timeout kill; cancel; approval mode with terminal approval; `recover` showing the journal; the session-hook script; the adapter files for Claude Code, Codex and Antigravity (written, merged without overwriting existing entries, and idempotent).
+```sh
+node bin/helm.mjs print-config --host codex
+# other options: claude, vscode, cursor
+```
 
-**Not verified:** running a real `claude` or `codex` CLI headless (the presets and `promptVia: stdin` are from memory of those tools); installing through Claude Code's plugin marketplace and the hook inside a live Claude Code session; the MCP config formats for Codex, VS Code and Cursor; Windows (the runner uses `taskkill` and a shell for `.cmd` commands, untested); CI waiting against real GitHub. Test each once on your machine before relying on it; `TODO-MAP.md` says where.
+For a full Claude Code local plugin, see the [installation walkthrough](TODO-MAP.md) and `.claude-plugin/`. The folder must remain available at the path used for MCP registration.
 
-## Known limits
-- A spawned agent runs with your permissions; a worktree is not a sandbox (see TODO-MAP section G).
-- Long commands (`land` with CI waiting, `ship`) can exceed a client's tool timeout; the work continues, run `recover` to see the state.
-- The roadmap template is generic. The quality of the first milestone depends on the brief and on you confirming the steps.
+## Everyday workflow
 
+After initializing a project, a typical session is:
 
-## Repository maintenance and release verification
+```text
+"Recover my project and show the current milestone."
+"Continue with the next ready step."
+"Research the risk before implementing this change."
+"Run the appropriate tests, then review the result."
+"Record what is finished and what remains."
+```
 
-Run `npm run check` and `npm test` from the repository. The full MCP SDK e2e suite is `npm run test:integration` (requires access to install its test dependency). Publishing is automated only after the `main` CI test job succeeds: it produces a versioned ZIP, npm-compatible tarball and SHA-256 checksums. If GitHub Actions fails **before any step or runner is assigned**, investigate repository Actions/billing/runner availability rather than misreporting a passing test or creating a tag by hand. See `docs/RELEASING.md`.
+You can also inspect progress from the terminal:
 
-## v0.4.1 repository health check
+```sh
+node bin/helm.mjs watch --path ../hello-helm --once
+node bin/helm.mjs runs --path ../hello-helm
+```
 
-Run `npm run audit:repo` from a Git checkout to inspect repository metadata, versions, remote branch state, tags, Git-tracked files, obvious secret-like strings, and README quality. The audit is read-only and runs offline by default. A future tag (such as `v0.4.1`) not yet published is a warning, not a failure. `npm run check` remains the metadata check used during release packaging.
+Read the generated `VISION.md`, roadmap, and project instructions before delegating work. A checkpoint is a work record, **not** proof that a test passed.
 
-The Helm npm package is now marked `private: true` to avoid unintended registry publishing. This does not prevent using the ZIP or `.tgz` downloadable packages. Existing MIT license and the `@samjuniors/helm`/`helm` identity are unchanged.
+## Configuration and architecture
+
+Helm's implementation is organized around a dependency-free stdio MCP server and a Git-aware project engine.
+
+| Location | Responsibility |
+| --- | --- |
+| `server/mcp.mjs` | MCP protocol and exposed tools |
+| `server/runtime.mjs`, `server/runner.mjs` | Initialization, orchestration, agent execution |
+| `engine/kit.mjs` | Project lifecycle, Git steps, validation, recovery |
+| `engine/template/` | Initial vision, milestones, gates, settings |
+| `bin/helm.mjs` | Command-line entry point |
+| `agents/`, `commands/`, `skills/`, `hooks/` | Assistant-specific integration |
+| `tests/` | Regression and MCP integration test suites |
+
+The project-specific agent policy is stored in `.agents/product-kit/kit.config.json`. Configure the allowed roles, spawn limits, timeout, and whether approvals are required. **Start with `"approval": "ask"`** when introducing external agents.
+
+## Updating Helm
+
+Use [GitHub Releases](https://github.com/samjuniors/Helm/releases) for versioned downloads: `helm-vX.Y.Z.zip`, `helm-vX.Y.Z.tgz`, and `SHA256SUMS`.
+
+If you installed from a **Git clone**, update the source after reviewing changes:
+
+```sh
+git status
+git pull --ff-only origin main
+node bin/helm.mjs version
+```
+
+If you installed from an **extracted ZIP**, use the updater in the *new* extracted release. Preview first:
+
+```sh
+node update.mjs --into /path/to/existing/helm --dry-run
+node update.mjs --into /path/to/existing/helm
+```
+
+The updater backs up the existing installation and validates the new MCP server. To refresh the generated engine in an existing project without replacing its roadmap and records:
+
+```sh
+node bin/helm.mjs upgrade-project --path /path/to/project
+```
+
+Review the output and back up your project before upgrades. See the [changelog](CHANGELOG.md) and [release procedure](docs/RELEASING.md).
+
+## Rename the plugin
+
+Use `node rename.mjs --name my-helm` in a separate plugin installation to change the registered server/plugin name. Start with `--dry-run`, and reinstall host registrations afterwards. The generated `.agents/product-kit/` project data path and the MCP tool names remain unchanged.
+
+## Testing and current limitations
+
+Run the checks that match the change:
+
+```sh
+npm run check
+npm test
+npm run audit:repo
+npm run test:integration
+npm pack --dry-run --ignore-scripts
+```
+
+`test:integration` installs the MCP SDK test dependency and requires dependency-network access. GitHub-hosted Actions has previously been blocked before executing any jobs by an account/payment issue; see [issue #2](https://github.com/samjuniors/Helm/issues/2). A failed or unassigned runner does **not** mean tests passed. Releases can instead use verified local builds and manual GitHub uploads.
+
+**Known limits:** A Git worktree is *not* a security sandbox; spawned agents run with the permissions of the configured account. Do not use unrestricted credentials or run untrusted agents on sensitive repositories. Real host integration, Windows behavior, and releases should be verified in the target environment; see [security guidance](SECURITY.md) and [the technical TODO map](TODO-MAP.md).
+
+## Roadmap and project direction
+
+Helm prioritizes **safe existing-project support**, reliable resume/recovery, cross-agent compatibility, clear validation, and lightweight installation. Future work is chosen from observed user needs, not promised on a fixed schedule.
+
+The project welcomes focused proposals on project lifecycle UX, adapters, regression coverage, documentation, and release reliability. Open a [feature request](https://github.com/samjuniors/Helm/issues/new/choose) when public issues are enabled.
+
+## Contributing
+
+Contributors can help with bugs, docs, tests, compatibility research, design feedback, and small features.
+
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md).
+2. Once the repository is public, fork it, create a focused branch, and make your change.
+3. Run relevant tests, describe what you actually checked, and open a pull request.
+4. For larger changes, discuss the problem and migration strategy before implementation.
+
+**Good first contributions:** reproduction cases, Windows/macOS compatibility checks, host integration instructions, and smaller documentation improvements.
+
+## Support the project
+
+Helm is maintained by [samjuniors](https://github.com/samjuniors) and distributed under the MIT license. If Helm helps your work, consider starring it once public, sharing a real use case, helping triage issues, or contributing a fix.
+
+**Sponsorship:** The repository includes a [GitHub Sponsors funding configuration](.github/FUNDING.yml). The maintainer must activate an eligible GitHub Sponsors profile before donations can be received or the Sponsor button works. Contributions and sponsorship do not buy roadmap priority or bypass reviews.
+
+## Community and support
+
+- [Issues](https://github.com/samjuniors/Helm/issues) — reproducible bugs and feature proposals (when accessible).
+- [Releases](https://github.com/samjuniors/Helm/releases) — versions and downloadable artifacts.
+- [Contribution guide](CONTRIBUTING.md) — fork/PR process and review expectations.
+- [Security policy](SECURITY.md) — report security problems privately, not in public issues.
+- [Open-source launch checklist](docs/OPEN_SOURCE_LAUNCH.md) — steps the maintainer must complete before making this repository public.
+
+## License
+
+Helm is licensed under the [MIT License](LICENSE). Before contributing, make sure you have the rights to submit the code, assets, or documentation.
+
+---
+
+**Build software with a clear next step — and a reliable way back to it.**

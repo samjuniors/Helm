@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest an improvement grounded in a real user need
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Which problem are you trying to solve?
+      description: Describe the use case and what is difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Proposed behavior
+      description: What should Helm do, in the smallest useful version?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and trade-offs
+      description: Workarounds, simpler solutions, compatibility considerations
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Project lifecycle and recovery
+        - Multi-agent orchestration
+        - MCP / IDE integration
+        - Testing and Git workflows
+        - Installation and releases
+        - Documentation / usability
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: agree
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked existing issues for a similar proposal.
+          required: true

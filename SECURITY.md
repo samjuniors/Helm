@@ -1,12 +1,30 @@
-# Security policy
+# Security Policy
 
-## Reporting issues
-This repository is currently private. Report a suspected vulnerability privately to the maintainer instead of posting secrets, credentials or exploit details to public issues. Do not include tokens or private customer files in test logs.
+Helm is an MCP project orchestrator that can run configured external agent processes. It must be treated as **privileged developer tooling**.
 
-## Trust boundary
-Helm can launch external agent commands with the permissions of the operating-system user. A Git worktree isolates file history; **it is not a security sandbox**. Treat remote prompts and spawned agents as untrusted. Prefer limited-permission execution environments, review the agent policy and require human approval for risky operations.
+## Reporting a vulnerability
 
-Do not run arbitrary installation commands copied from unverified sources. Use a pinned Git tag or verified checksum, inspect the release contents, and avoid unnecessary environment variables or broad filesystem permissions. Never commit .env files, credentials, logs or generated archives.
+Please **do not disclose exploit details, credentials, or private project files in public GitHub issues or pull requests**.
 
-## Supported versions
-Until GitHub Actions passes and a tagged release is published, v0.4.0 remains a source version, not a verified published GitHub release. Security fixes are shipped through reviewed commits and tagged releases once verification succeeds.
+If GitHub's private vulnerability reporting feature is enabled for Helm, use **Security → Report a vulnerability** in the repository. Otherwise, contact the maintainer privately through their GitHub profile and request a secure reporting channel before sharing sensitive material. No security contact email is published or guaranteed.
+
+Include affected version, reproduction steps, impact, and suggested mitigation where safe to share. Do not test against other people's machines or repositories without permission.
+
+## Security model and boundaries
+
+- Helm launches external commands with the effective permissions of the operating-system account running it.
+- **Git worktrees are not sandboxes.** They separate branches and files but do not prevent processes from reading other paths, executing commands, or using available credentials.
+- Enable explicit agent approval for untrusted repositories, restrict the tools and credentials available to agents, and review proposed actions.
+- Treat third-party prompts, dependencies, plugins, and contributions as untrusted input.
+- Preserve existing project files; back up before upgrades and verify release SHA-256 checksums.
+- Never commit tokens, `.env` files, private prompts, project secrets, or personal information.
+
+## Supported releases and maintenance
+
+The latest **published** release is listed on [GitHub Releases](https://github.com/samjuniors/Helm/releases). Current source versions and release tags may differ; verify against the repository before claiming support for a given version.
+
+Security fixes follow the documented branch/validation/packaging process. Hosted Actions may be unavailable due to runner/billing restrictions, in which case maintainers must execute relevant tests locally and disclose unverified platforms or integrations.
+
+## Responsible disclosure
+
+We aim to investigate reproducible reports and coordinate a fix before publicly disclosing high-impact vulnerabilities. There is no guaranteed response time or formal bug-bounty program.
