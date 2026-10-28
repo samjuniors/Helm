@@ -23,7 +23,8 @@ for(const f of ['plugin.json','.claude-plugin/plugin.json']){
 (read('server/mcp.mjs')||'').includes("const VERSION = '"+pkg.version+"';")?P('MCP version agrees'):F('MCP version mismatch');
 (read('CHANGELOG.md')||'').includes('## '+pkg.version)?P('changelog includes version'):F('missing changelog entry');
 for(const f of ['README.md','LICENSE','.gitattributes','.gitignore','docs/RELEASING.md','scripts/build-release.mjs'])read(f)?P(f+' exists'):F('missing '+f);
-for(const h of ['Install','Updat','Rename'])new RegExp('^## .*'+h,'mi').test(read('README.md')||'')?P('README '+h+' section'):W('README '+h+' section missing');
+for(const h of ['Quick start','Updat','Contribut'])new RegExp('^## .*'+h,'mi').test(read('README.md')||'')?P('README '+h+' section'):W('README '+h+' section missing');
+new RegExp('^## .*Custom plugin names','mi').test(read('docs/ADVANCED_USAGE.md')||'')?P('advanced custom-name instructions'):W('advanced custom-name instructions missing');
 pkg.license==='MIT'?P('MIT license preserved'):F('MIT license changed');
 pkg.private===true?P('npm publishing disabled'):W('npm publishing is enabled');
 Array.isArray(pkg.keywords)&&pkg.keywords.includes('mcp')?P('package keywords configured'):W('missing MCP keyword');
