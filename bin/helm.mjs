@@ -74,9 +74,40 @@ try {
     console.log(adoptProject(pos[0] || flags.path || process.cwd(), { name: flags.name, brief: flags.brief }));
   } else if (cmd === 'version') {
     console.log('Helm ' + pluginVersion());
+  } else if (cmd === 'setup') {
+    if (rest.length && !rest.every((a) => ['--json', '--check'].includes(a))) die('usage: helm setup [--json] [--check]');
+    if (flags.json || flags.check) {
+      const { doctorReport, latestStatus } = await import('../wizard.mjs');
+      const report = doctorReport();
+      if (flags.check) report.release = await latestStatus(report.installed.version);
+      if (flags.json) console.log(JSON.stringify(report, null, 2));
+      else console.log(report.release?.status === 'available'
+        ? 'Update available: v' + report.release.latest + ' (run helm update --dry-run)'
+        : report.release?.status === 'current' ? 'Helm is up to date.'
+        : 'Could not check latest release: ' + (report.release?.message || 'not installed'));
+    } else {
+      const child = spawnSync(process.execPath, [path.join(PLUGIN_ROOT, 'wizard.mjs')], { stdio: 'inherit' });
+      process.exit(child.status ?? 1);
+    }
+  } else if (cmd === 'doctor') {
+    if (rest.length && !rest.every((a) => ['--json', '--check'].includes(a))) die('usage: helm doctor [--json] [--check]');
+    const { doctorReport, latestStatus } = await import('../wizard.mjs');
+    const report = doctorReport();
+    if (flags.check) report.release = await latestStatus(report.installed.version);
+    if (flags.json) console.log(JSON.stringify(report, null, 2));
+    else {
+      console.log('Helm doctor · read-only diagnostics');
+      console.log('Managed installation: ' + (report.installed.status === 'installed'
+        ? 'v' + report.installed.version + ' · ' + report.installed.record.dir : report.installed.status));
+      console.log('Launcher: ' + report.launcher + (report.launcherExists ? ' (present)' : ' (missing)'));
+      for (const c of report.clients) console.log(c.label.padEnd(35) + (c.detected ? c.evidence : 'not detected') +
+        ' · ' + (c.integration === 'automatic' ? 'supported CLI' : 'manual integration'));
+      if (report.release) console.log('Latest release: ' + (report.release.latest || report.release.message || report.release.status));
+      console.log('No files or registrations changed.');
+    }
   } else if (cmd === 'install' || cmd === 'uninstall') {
     const valid = cmd === 'install'
-      ? new Set(['--dry-run', '--host', '--scope', '--dir', '--in-place', '--force', '--no-path'])
+      ? new Set(['--dry-run', '--host', '--scope', '--dir', '--in-place', '--force', '--no-path', '--yes'])
       : new Set(['--dry-run', '--yes', '--purge']);
     if (Object.keys(flags).some((f) => !valid.has('--' + f))) die('unsupported ' + cmd + ' option; see helm help');
     if (cmd === 'uninstall' && (rest.includes('--dir') || rest.includes('--force'))) die('uninstall cannot target arbitrary paths');

@@ -69,6 +69,32 @@ node bin/helm.mjs state ../my-existing-app
 
 The `kit_consult` MCP tool records a bounded interview, evidence, options, recommendations and plans. Founders can inspect their decisions with `node bin/helm.mjs consult list` and record approval using `consult agree [id] --quote "your own words"`. These records live in local Git metadata and do not automatically travel between computers.
 
+## Guided setup and diagnostic CLI (v0.10.0+)
+
+Open `helm setup` in any interactive PowerShell, Command Prompt, macOS or Linux terminal after installation. The wizard detects client configuration markers and launchable CLIs, distinguishes manually guided integrations, offers selection, previews changes, and asks before applying a new installation or client connection. It checks for published updates but does not install them automatically.
+
+Read-only diagnostics:
+
+```sh
+helm doctor
+helm doctor --json
+helm doctor --check
+helm setup --json --check
+```
+
+Advanced or unattended installation:
+
+```sh
+helm install --host codex --dry-run
+helm install --host codex
+helm install --host none
+node setup.mjs install --host claude --dir /absolute/safe/folder --dry-run
+```
+
+Avoid changing `--dir` or `--scope` on a managed installation: Helm refuses to move the installation or silently re-home scoped registrations. Adding a new CLI client preserves existing registrations. A duplicate, unrecognized Helm registration blocks setup until manual review.
+
+**Host boundary:** automatic registration is available for Claude Code and Codex when their CLIs are on PATH. Antigravity global/workspace, Claude Desktop, Cursor and VS Code appear in discovery with manual connection instructions; detection alone cannot prove integration or authorize a write. See `helm print-config` for supported sample snippets and check the relevant client documentation.
+
 ## One-command lifecycle (v0.9.0+)
 
 After installing Helm, use its own CLI for installation maintenance. Windows installers add `.helm\bin` to the user's PATH by default; `--no-path` opts out. The bootstrap enables it immediately in the current PowerShell window, but other terminals may need restarting:

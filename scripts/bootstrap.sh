@@ -3,16 +3,22 @@
 # Verify the official release's SHA256SUMS before extracting or executing setup.
 set -eu
 mode=
-client=all
+client=
+install_dir=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --dry-run) mode=--dry-run ;;
+    --dir)
+      shift
+      [ "$#" -gt 0 ] || { echo "Missing install directory" >&2; exit 1; }
+      install_dir=$1
+      ;;
     --host)
       shift
       [ "$#" -gt 0 ] || { echo "Missing host argument" >&2; exit 1; }
-      case "$1" in all|codex|claude) client=$1 ;; *) echo "Unsupported host" >&2; exit 1 ;; esac
+      case "$1" in all|none|codex|claude) client=$1 ;; *) echo "Unsupported host" >&2; exit 1 ;; esac
       ;;
-    *) echo "Usage: sh bootstrap.sh [--dry-run] [--host all|codex|claude]" >&2; exit 1 ;;
+    *) echo "Usage: sh bootstrap.sh [--dry-run] [--host all|none|codex|claude] [--dir PATH]" >&2; exit 1 ;;
   esac
   shift
 done
@@ -81,9 +87,29 @@ if(p.name!=="@samjuniors/helm"||("v"+p.version)!==process.argv[2])process.exit(1
 ' "$work/staged/package/package.json" "$tag" || {
   echo "Release metadata does not match tag" >&2; exit 1;
 }
-if [ "$mode" = "--dry-run" ]; then
-  node "$work/staged/package/setup.mjs" install --host "$client" --dry-run
+if [ -z "$client" ] && [ -z "$mode" ] && [ -z "$install_dir" ]; then
+  if [ -r /dev/tty ]; then
+    echo 'Opening guided setup from your terminal; select clients, preview and approve.'
+    node "$work/staged/package/wizard.mjs" < /dev/tty
+    echo 'Helm setup wizard closed. Restart your coding client if you installed Helm.'
+  else
+    echo 'Interactive terminal unavailable. Use --host codex, --host claude, --host all or --host none for scripted installs.' >&2
+    exit 1
+  fi
 else
-  node "$work/staged/package/setup.mjs" install --host "$client"
-  echo "Helm installed. Restart your coding assistant, then use helm update or helm uninstall."
+  [ -n "$client" ] || client=all
+  if [ "$mode" = "--dry-run" ]; then
+    if [ -n "$install_dir" ]; then
+      node "$work/staged/package/setup.mjs" install --host "$client" --dir "$install_dir" --dry-run
+    else
+      node "$work/staged/package/setup.mjs" install --host "$client" --dry-run
+    fi
+  else
+    if [ -n "$install_dir" ]; then
+      node "$work/staged/package/setup.mjs" install --host "$client" --dir "$install_dir"
+    else
+      node "$work/staged/package/setup.mjs" install --host "$client"
+    fi
+    echo 'Helm installed. Restart your coding assistant, then use helm update or helm uninstall.'
+  fi
 fi

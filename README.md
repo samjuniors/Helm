@@ -46,21 +46,26 @@ Helm orchestrates work; it does **not** replace your coding assistant, perform w
 
 ### 1. Install Helm
 
+**Two ways to get started:** a guided installer for first-time users and precise commands for experienced developers. Both use the same lightweight Helm runtime and safeguards.
+
+
 **First time, no Git clone or ZIP extraction needed.** With Node.js 18+ and Git installed, use a version-pinned, source-visible bootstrap:
 
 **Windows PowerShell:**
 
 ~~~powershell
-irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' | iex
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.ps1' | iex
 ~~~
 
 **macOS / Linux:**
 
 ~~~sh
-curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh' | sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.sh' | sh
 ~~~
 
 These commands execute a remote script: [review the Windows script](scripts/bootstrap.ps1) or [Unix script](scripts/bootstrap.sh) before running, or [download and inspect it first](docs/INSTALLATION.md#download-and-inspect-before-execution). The bootstrap downloads the latest official release, verifies SHA-256, runs Helm's guarded installer, and never overwrites an unrecognized installation.
+
+When run from an interactive terminal, the verified bootstrap launches Helm's **guided setup wizard**. It shows available clients, lets you choose installation location and CLI integrations, previews the intended changes and requests approval before writing. It does not automatically register every detected application.
 
 Helm creates a managed copy, checks MCP startup, and registers supported coding clients when available. On Windows, the installer safely adds `.helm\bin` to **your user PATH** (not the system PATH), unless you opt out with `--no-path` or bootstrap `-NoPath`. The PowerShell bootstrap also enables `helm` in the current session; other open terminals may need to be restarted. On macOS/Linux, add `.helm/bin` to your shell PATH as shown in the [installation guide](docs/INSTALLATION.md). See [installation details](docs/INSTALLATION.md) or [manual ZIP installation](docs/INSTALLATION.md#manual-zip-installation).
 
@@ -92,9 +97,17 @@ Helm's generated project records are stored in `.agents/product-kit/` for backwa
 
 ## Updating Helm and managing installation
 
-Once Helm is installed and its launcher is available, these are the standard commands:
+**Guided:** Run `helm setup` to choose integrations, preview changes, add another client, check for updates or uninstall with confirmation.
+
+**Advanced:** Once Helm is installed and its launcher is available, use these commands directly:
 
 ~~~sh
+helm setup                  # Interactive wizard
+helm doctor                 # Read-only installation/client diagnostics
+helm doctor --json          # Machine-readable diagnostics
+helm install --host codex --dry-run    # Preview a targeted installation
+helm install --host codex              # Register this client
+helm install --host none               # CLI only, no agent integration
 helm install --dry-run      # Preview installation or registration
 helm install                # Install a managed copy; existing ones are left intact
 helm update --check         # Look for a new stable release
@@ -103,6 +116,8 @@ helm update                 # Verify, back up and install it
 helm uninstall --dry-run    # Preview removal
 helm uninstall              # Ask before removing the managed Helm copy
 ~~~
+
+The wizard automatically detects release availability but **never downloads an update without user approval**. Automatic registration currently supports **Claude Code and Codex CLI integrations** (Codex CLI and IDE share configuration). Antigravity, Claude Desktop, Cursor and VS Code are detected with manual connection instructions until their adapters are independently verified.
 
 The uninstaller removes only verified Helm-managed files and selected MCP registrations; **it does not remove application projects, Git repositories or user notes**. Restart your coding client after installing, updating or uninstalling.
 
