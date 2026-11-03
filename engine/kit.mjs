@@ -210,7 +210,9 @@ function leanStats(cwd) {
 const SECTION = (t, name) => (t.match(new RegExp(`^## ${name}[^\\n]*\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm')) ?? [])[1] ?? '';
 const filled = (text, min = 8) => { const v = String(text ?? '').trim(); return v.length >= min && !v.startsWith('<'); };
 // ---- layout contract: where new files may go (heuristic; flags NEW strays, does not reorganize old ones) ----
-const KIT_REL = path.relative(root, kitDir).split(path.sep).join('/');
+// Ask Git for the repository-relative prefix. Comparing absolute paths on Windows
+// can fail when Git returns an 8.3 short path (RUNNER~1) but Node sees the long name.
+const KIT_REL = git(['rev-parse', '--show-prefix'], kitDir).replace(/\/$/, '');
 const KIT_SUBDIRS = new Set(['ack', 'briefs', 'capability-requests', 'done', 'findings', 'handoffs', 'qa', 'archive']);
 const COMMON_DIRS = new Set(['src', 'server', 'web', 'client', 'shared', 'tests', 'test', 'e2e', 'scripts', 'public', 'docs', 'prisma', 'electron', 'packages', 'apps', 'assets', 'types', 'tools', '.github', '.vscode', '.husky', '.claude', '.codex', '.agents', '.agents']);
 const TOOLING_ROOT = /^(\.[\w.-]+|.*\.config\.[cm]?[jt]s|tsconfig[\w.-]*\.json|package(-lock)?\.json|pnpm-[\w.-]+|yarn\.lock|index\.html|Dockerfile[\w.-]*|docker-compose[\w.-]*|LICENSE.*|README\.md|CHANGELOG\.md|[\w.-]*\.(lock|toml)|(AGENTS|CLAUDE|GEMINI)\.md)$/;
@@ -276,11 +278,10 @@ const ROLES = {
 };
 const helperBranch = (id, role) => `helper/${id}-${role}`;
 function outOfScope(role, id, files, paths) {
-  const reportName = ROLES[role].report ? `${id}.${ROLES[role].report}.md` : null;
-  const expectedReports = reportName ? new Set([`${KIT_REL}/handoffs/${reportName}`, `.agents/product-kit/handoffs/${reportName}`]) : new Set();
+  const rep = ROLES[role].report ? `${KIT_REL}/handoffs/${id}.${ROLES[role].report}.md` : null;
   return files.filter((raw) => {
-    const f = raw.replace(/\\/g, '/'); // Git reports paths with different separators on Windows hosts.
-    if (expectedReports.has(f)) return false;
+    const f = raw.replace(/\\/g, '/');
+    if (f === rep) return false;
     if (role === 'tester') return !TEST_PATH.test(f);
     if (role === 'debugger') return f.startsWith(`${KIT_REL}/`);
     if (role === 'implementer') return !paths.some((x) => f === x || f.startsWith(x.endsWith('/') ? x : `${x}/`));

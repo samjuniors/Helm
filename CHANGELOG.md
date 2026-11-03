@@ -3,7 +3,7 @@
 ## 0.7.1
 - Correct cross-platform setup tests to verify actual MCP upgrade success, downgrade refusal and safe backup purging.
 - Remove empty Helm setup folders after purge while retaining unrelated user files and project data.
-- Harden helper scope checks by using NUL-delimited Git file paths and separator normalization; allow exact helper reports while blocking out-of-scope source edits.
+- Fix Windows 8.3/long-path aliases by asking Git for the kit's repository-relative prefix; use NUL-delimited change paths so legitimate helper reports land while out-of-scope edits remain blocked.
 - Require versioned custom release notes during release metadata validation.
 
 ## 0.7.0
