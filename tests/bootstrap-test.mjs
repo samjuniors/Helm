@@ -40,14 +40,14 @@ if (process.platform === 'win32') {
       cwd:root,encoding:'utf8',timeout:25000,
     });
     assert.equal(archive.status,0,'npm pack failed '+output(archive));
-    const pkg=path.join(fixtures,'samjuniors-helm-0.9.0.tgz');
-    const releaseFile=path.join(fixtures,'helm-v0.9.0.tgz');
+    const pkg=path.join(fixtures,'samjuniors-helm-0.9.1.tgz');
+    const releaseFile=path.join(fixtures,'helm-v0.9.1.tgz');
     fs.renameSync(pkg,releaseFile);
     const digest=crypto.createHash('sha256').update(fs.readFileSync(releaseFile)).digest('hex');
-    fs.writeFileSync(path.join(fixtures,'SHA256SUMS'),digest+'  helm-v0.9.0.tgz\n');
+    fs.writeFileSync(path.join(fixtures,'SHA256SUMS'),digest+'  helm-v0.9.1.tgz\n');
     fs.writeFileSync(path.join(fixtures,'release.json'),JSON.stringify({
-      tag_name:'v0.9.0',draft:false,prerelease:false,
-      assets:[{name:'helm-v0.9.0.tgz'},{name:'SHA256SUMS'}],
+      tag_name:'v0.9.1',draft:false,prerelease:false,
+      assets:[{name:'helm-v0.9.1.tgz'},{name:'SHA256SUMS'}],
     }));
     const fakeCurl=[
       '#!/bin/sh',
@@ -62,7 +62,7 @@ if (process.platform === 'win32') {
       'case "$url" in',
       '  */releases/latest) src="$HELM_FIXTURE_DIR/release.json" ;;',
       '  */SHA256SUMS) src="$HELM_FIXTURE_DIR/SHA256SUMS" ;;',
-      '  */helm-v0.9.0.tgz) src="$HELM_FIXTURE_DIR/helm-v0.9.0.tgz" ;;',
+      '  */helm-v0.9.1.tgz) src="$HELM_FIXTURE_DIR/helm-v0.9.1.tgz" ;;',
       '  *) echo "Unexpected curl URL" >&2; exit 1 ;;',
       'esac',
       'test -n "$out" || exit 1',
@@ -80,14 +80,14 @@ if (process.platform === 'win32') {
     assert.equal(installed.status,0,'POSIX first-time install failed '+output(installed));
     const plugin=path.join(home,'.helm','plugin');
     const state=JSON.parse(fs.readFileSync(path.join(home,'.helm','install.json'),'utf8'));
-    assert.equal(state.version,'0.9.0');
+    assert.equal(state.version,'0.9.1');
     assert.equal(state.host,'codex');
     assert.ok(fs.existsSync(path.join(plugin,'server','mcp.mjs')));
     pass('POSIX bootstrap verifies the release and installs managed Helm');
     const launcher=path.join(home,'.helm','bin','helm');
     const v=spawnSync(launcher,['version'],{env,encoding:'utf8',timeout:10000});
     assert.equal(v.status,0,'Installed launcher failed '+output(v));
-    assert.match(output(v),/Helm 0\.9\.0/);
+    assert.match(output(v),/Helm 0\.9\.1/);
     pass('POSIX installed launcher works');
     const remove=spawnSync(launcher,['uninstall','--yes'],{env,encoding:'utf8',timeout:20000});
     assert.equal(remove.status,0,'Installed CLI uninstall failed '+output(remove));

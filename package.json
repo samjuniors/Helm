@@ -1,6 +1,6 @@
 {
   "name": "@samjuniors/helm",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Helm: project lifecycle, agent orchestration, Git workflows, QA and recovery for MCP-compatible assistants",
   "type": "module",
   "license": "MIT",
@@ -16,7 +16,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node tests/init-safety-test.mjs && node tests/update-test.mjs && node tests/release-test.mjs && node tests/rename-test.mjs && node tests/v041-compat-test.mjs && node tests/helm-test.mjs && node tests/setup-test.mjs && node tests/self-update-test.mjs && node tests/lifecycle-cli-test.mjs && node tests/bootstrap-test.mjs",
+    "test": "node tests/init-safety-test.mjs && node tests/update-test.mjs && node tests/release-test.mjs && node tests/rename-test.mjs && node tests/v041-compat-test.mjs && node tests/helm-test.mjs && node tests/setup-test.mjs && node tests/self-update-test.mjs && node tests/lifecycle-cli-test.mjs && node tests/bootstrap-test.mjs && node tests/path-onboarding-test.mjs",
     "check": "node scripts/check-release.mjs",
     "pack:release": "node scripts/build-release.mjs",
     "prepack": "node scripts/check-release.mjs",
@@ -66,7 +66,9 @@
     "tests/setup-windows-test.mjs",
     "tests/self-update-test.mjs",
     "tests/lifecycle-cli-test.mjs",
-    "tests/bootstrap-test.mjs"
+    "tests/bootstrap-test.mjs",
+    "server/user-path.mjs",
+    "tests/path-onboarding-test.mjs"
   ],
   "homepage": "https://github.com/samjuniors/Helm#readme",
   "bugs": {

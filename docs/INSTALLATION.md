@@ -11,13 +11,13 @@ With [Node.js 18+](https://nodejs.org/) and Git installed, use a **version-pinne
 **Windows PowerShell:**
 
 ~~~powershell
-irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.ps1' | iex
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' | iex
 ~~~
 
 **macOS / Linux:**
 
 ~~~sh
-curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.sh' | sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh' | sh
 ~~~
 
 Both commands fetch code and execute it immediately. **Review the script before executing.** The safer inspect-first method is below. Bootstrapping uses the official GitHub Releases API and assets; it does not clone the Git repository or write anything into your existing project.
@@ -27,7 +27,7 @@ Both commands fetch code and execute it immediately. **Review the script before 
 On Windows:
 
 ~~~powershell
-Invoke-WebRequest 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.ps1' -OutFile .\helm-bootstrap.ps1
+Invoke-WebRequest 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' -OutFile .\helm-bootstrap.ps1
 Get-Content .\helm-bootstrap.ps1
 & .\helm-bootstrap.ps1 -DryRun
 & .\helm-bootstrap.ps1
@@ -38,13 +38,13 @@ PowerShell execution policy may block scripts saved from the internet. Review th
 On macOS or Linux:
 
 ~~~sh
-curl -fsSLo ./helm-bootstrap.sh 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.sh'
+curl -fsSLo ./helm-bootstrap.sh 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh'
 cat ./helm-bootstrap.sh
 sh ./helm-bootstrap.sh --dry-run
 sh ./helm-bootstrap.sh
 ~~~
 
-The scripts use a temporary folder, verify the downloaded official archive against `SHA256SUMS`, check archive entries and run the existing setup assistant. Neither script automatically edits PATH.
+The scripts use a temporary folder, verify the downloaded official archive against `SHA256SUMS`, check archive entries and run the existing setup assistant. On Windows, the installer appends only Helm's launcher folder to the current user's PATH unless `-NoPath` is selected. The PowerShell bootstrap also activates the launcher in its current session. Other open terminals may need restarting. Unix shell startup files are not edited automatically; follow the PATH instructions below.
 
 ### Which Helm command should I use later?
 
@@ -86,7 +86,7 @@ sh setup.sh install
 node setup.mjs status
 ~~~
 
-The setup assistant creates a managed installation under your home directory, validates the Helm MCP server, and attempts to register Claude Code and/or Codex if present. It does not install those clients or automatically modify your PATH.
+The setup assistant creates a managed installation under your home directory, validates the Helm MCP server, and attempts to register Claude Code and/or Codex if present. It does not install those clients. On Windows it adds the Helm launcher to the **user PATH** by default (opt out using `--no-path`), preserving all existing entries. Open a new PowerShell terminal if an older one does not recognize `helm`. On Unix systems, add the launcher folder to your shell PATH manually.
 
 | Platform | Managed copy | CLI launcher |
 | --- | --- | --- |

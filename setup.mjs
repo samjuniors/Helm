@@ -13,6 +13,7 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { changeWindowsUserPath } from './server/user-path.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -25,6 +26,7 @@ const q = (a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
 const run = (c, args) => (win ? spawnSync([c, ...args.map(q)].join(' '), { shell: true, encoding: 'utf8' }) : spawnSync(c, args, { encoding: 'utf8' }));
 const has = (c) => { const r = run(c, ['--version']); return !r.error && r.status === 0; };
 const dry = flag('dry-run');
+const manageWindowsPath = win && !flag('no-path');
 
 // the name this build answers to is the name of its bin file (rename.mjs keeps that in step)
 const bins = fs.existsSync(path.join(here, 'bin')) ? fs.readdirSync(path.join(here, 'bin')).filter((f) => f.endsWith('.mjs')) : [];
@@ -54,7 +56,7 @@ const onPath = () => (process.env.PATH ?? '').split(path.delimiter).some((p) => 
 function pathHelp() {
   if (onPath()) return `Type "${NAME}" in any terminal.`;
   return win
-    ? `To type just "${NAME}" in any terminal, add ${BIN_DIR} to your PATH (Settings > search "environment variables" > Path > New). Until then use:  "${path.join(BIN_DIR, `${NAME}.cmd`)}" <command>`
+    ? `Open a new PowerShell terminal after installation to type "${NAME}". If it remains unavailable, add ${BIN_DIR} to your user Path (Windows Environment Variables > Path > New). Or run: "${path.join(BIN_DIR, `${NAME}.cmd`)}" <command>`
     : `To type just "${NAME}" in any terminal:  echo 'export PATH="${BIN_DIR}:$PATH"' >> ~/.zshrc  (or ~/.bashrc), then open a new terminal. Until then use:  ${path.join(BIN_DIR, NAME)} <command>`;
 }
 
@@ -62,7 +64,18 @@ function install() {
   if (Number(process.versions.node.split('.')[0]) < 18) die('Node 18 or newer is required (check: node -v).');
   if (!has('git')) console.log('Note: git was not found. The kit needs git in your projects (https://git-scm.com).');
   const cur = readState();
-  if (cur && isOurs(cur.dir)) { console.log(`Already installed: ${NAME} ${meta(cur.dir).version} at ${cur.dir}.\nFor a managed install, run helm update --check and helm update.\nExisting files are preserved. Use update instead of reinstalling over them.`); return; }
+  if (cur && isOurs(cur.dir)) {
+    console.log(`Already installed: ${NAME} ${meta(cur.dir).version} at ${cur.dir}. Existing files are preserved.`);
+    if (manageWindowsPath && !dry && !cur.inPlace) {
+      try {
+        const result = changeWindowsUserPath(BIN_DIR, 'add');
+        if (result.changed) { writeState({ ...cur, pathManaged: true }); console.log(`Added ${BIN_DIR} to Windows user PATH. Open a new PowerShell terminal to type ${NAME}.`); }
+        else console.log(`Helm is already on Windows user PATH. If this shell cannot find it, reopen PowerShell.`);
+      } catch (e) { console.warn(`Could not update Windows user PATH: ${e.message}\n${pathHelp()}`); }
+    }
+    console.log('For future versions use helm update --check and helm update.');
+    return;
+  }
   if (cur && !isOurs(cur.dir)) die('An existing install record references a missing or invalid Helm folder. Review ~/.helm/install.json; refusing to overwrite.');
   const inPlace = flag('in-place');
   const target = inPlace ? here : path.resolve(opt('dir', path.join(HOME, 'plugin')));
@@ -77,6 +90,7 @@ function install() {
     }
   }
   console.log(`${dry ? '[dry run] ' : ''}Install ${NAME} ${meta(here).version}\n  plugin folder: ${target}${inPlace ? ' (this folder, nothing copied)' : ''}\n  launcher:      ${shimFiles()[0]}\n  hosts:         ${opt('host', 'all')} (Claude Code and Codex, whichever are installed)`);
+  if (manageWindowsPath && !inPlace) console.log(`  Windows user PATH: ${dry ? 'would add' : 'will add'} ${BIN_DIR} (existing PATH entries preserved; opt out with --no-path).`);
   if (!dry && !inPlace) {
     fs.mkdirSync(target, { recursive: true });
     fs.cpSync(here, target, { recursive: true, filter: (f) => { const rel = path.relative(here, f); return !(/(^|[\\/])(node_modules|\.git|dist)([\\/]|$)/.test(rel) || /-backup-/.test(rel) || rel === 'tests/package-lock.json'); } });
@@ -86,7 +100,15 @@ function install() {
   if (r.status !== 0) die('registration did not complete (see above). Nothing else was changed; fix it and run install again.');
   if (dry) { console.log(`\n[dry run] nothing was changed. The real run registers ${path.join(target, 'server', 'mcp.mjs')} (the permanent copy), not the path shown above.`); return; }
   writeShims(target);
-  writeState({ name: NAME, dir: target, inPlace, scope: opt('scope', 'user'), host: opt('host', 'all'), installedAt: new Date().toISOString(), version: meta(target).version });
+  const newState = { name: NAME, dir: target, inPlace, scope: opt('scope', 'user'), host: opt('host', 'all'), installedAt: new Date().toISOString(), version: meta(target).version };
+  writeState(newState);
+  if (manageWindowsPath && !inPlace) {
+    try {
+      const added = changeWindowsUserPath(BIN_DIR, 'add');
+      if (added.changed) writeState({ ...newState, pathManaged: true });
+      console.log(added.changed ? `Added ${BIN_DIR} to Windows user PATH; open a new terminal to use ${NAME}.` : `Windows user PATH already contains ${BIN_DIR}.`);
+    } catch (e) { console.warn(`Unable to update Windows user PATH automatically: ${e.message}\n${pathHelp()}`); }
+  }
   console.log(`\nInstalled ${NAME} ${meta(target).version}.\nNext:\n 1. Restart Claude Code / Codex so they load it. Check in Codex: codex mcp list\n 2. ${pathHelp()}\n 3. In a project: ${NAME} init . --name "My App" --brief "..."   (new product)   or   ${NAME} adopt .   (existing project, clean git tree)\n 4. For future releases: run helm update --check, helm update --dry-run, then helm update. Antigravity is wired per project by init/adopt.`);
 }
 
@@ -140,6 +162,12 @@ async function uninstall() {
     }
     else console.log(`Kept custom launcher ${f}; it was not created by this Helm installer.`);
   }
+  if (win && cur.pathManaged === true) {
+    try {
+      const removed = changeWindowsUserPath(BIN_DIR, 'remove');
+      if (removed.changed) console.log(`Removed Helm's PATH entry from Windows user PATH; reopen your terminal.`);
+    } catch (e) { console.warn(`Could not remove Helm's user PATH entry automatically: ${e.message}\nYou can remove ${BIN_DIR} manually from your user PATH.`); }
+  }
   fs.rmSync(STATE, { force: true });
   try { fs.rmdirSync(BIN_DIR); } catch { /* not empty or gone */ }
   if (flag('purge') && path.basename(HOME) === `.${NAME}` && path.dirname(HOME) === os.homedir()) {
@@ -172,7 +200,7 @@ async function menu() {
   if (a === '1') install(); else if (a === '2') update(); else if (a === '3') await uninstall(); else if (a === '4') status();
 }
 
-const help = () => console.log(`${NAME} setup\n  node setup.mjs install | update | uninstall | status   (no argument: menu)\n  --host all|claude|codex  --scope user|project|local  --dir <folder>  --in-place\n  --dry-run  --force  --yes  --purge\nWindows: double-click setup.cmd. Mac/Linux: ./setup.sh`);
+const help = () => console.log(`${NAME} setup\n  node setup.mjs install | update | uninstall | status   (no argument: menu)\n  --host all|claude|codex  --scope user|project|local  --dir <folder>  --in-place\n  --dry-run  --force  --yes  --purge  --no-path (Windows: do not modify user PATH)\nWindows: double-click setup.cmd. Mac/Linux: ./setup.sh`);
 if (flag('help') || cmd === 'help') help();
 else if (cmd === 'install') install();
 else if (cmd === 'update') update();
