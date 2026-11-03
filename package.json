@@ -1,6 +1,6 @@
 {
   "name": "@samjuniors/helm",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Helm: project lifecycle, agent orchestration, Git workflows, QA and recovery for MCP-compatible assistants",
   "type": "module",
   "license": "MIT",

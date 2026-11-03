@@ -210,7 +210,9 @@ function leanStats(cwd) {
 const SECTION = (t, name) => (t.match(new RegExp(`^## ${name}[^\\n]*\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm')) ?? [])[1] ?? '';
 const filled = (text, min = 8) => { const v = String(text ?? '').trim(); return v.length >= min && !v.startsWith('<'); };
 // ---- layout contract: where new files may go (heuristic; flags NEW strays, does not reorganize old ones) ----
-const KIT_REL = path.relative(root, kitDir).split(path.sep).join('/');
+// Ask Git for the repository-relative prefix. Comparing absolute paths on Windows
+// can fail when Git returns an 8.3 short path (RUNNER~1) but Node sees the long name.
+const KIT_REL = git(['rev-parse', '--show-prefix'], kitDir).replace(/\/$/, '');
 const KIT_SUBDIRS = new Set(['ack', 'briefs', 'capability-requests', 'done', 'findings', 'handoffs', 'qa', 'archive']);
 const COMMON_DIRS = new Set(['src', 'server', 'web', 'client', 'shared', 'tests', 'test', 'e2e', 'scripts', 'public', 'docs', 'prisma', 'electron', 'packages', 'apps', 'assets', 'types', 'tools', '.github', '.vscode', '.husky', '.claude', '.codex', '.agents', '.agents']);
 const TOOLING_ROOT = /^(\.[\w.-]+|.*\.config\.[cm]?[jt]s|tsconfig[\w.-]*\.json|package(-lock)?\.json|pnpm-[\w.-]+|yarn\.lock|index\.html|Dockerfile[\w.-]*|docker-compose[\w.-]*|LICENSE.*|README\.md|CHANGELOG\.md|[\w.-]*\.(lock|toml)|(AGENTS|CLAUDE|GEMINI)\.md)$/;
@@ -277,7 +279,8 @@ const ROLES = {
 const helperBranch = (id, role) => `helper/${id}-${role}`;
 function outOfScope(role, id, files, paths) {
   const rep = ROLES[role].report ? `${KIT_REL}/handoffs/${id}.${ROLES[role].report}.md` : null;
-  return files.filter((f) => {
+  return files.filter((raw) => {
+    const f = raw.replace(/\\/g, '/');
     if (f === rep) return false;
     if (role === 'tester') return !TEST_PATH.test(f);
     if (role === 'debugger') return f.startsWith(`${KIT_REL}/`);
@@ -920,7 +923,8 @@ const cmds = {
     if (hw) need(dirtyCount(hw.worktree) === 0, `the ${role} helper has uncommitted work in ${hw.worktree}; ask it to run checkpoint`);
     need(dirtyCount(stepWt.worktree) === 0, `the step worktree ${stepWt.worktree} has uncommitted work; checkpoint it first`);
     const base = git(['merge-base', `step/${id}`, hb], root);
-    const files = git(['diff', '--name-only', `${base}..${hb}`], root).split('\n').filter(Boolean);
+    // NUL-delimited names avoid Git's platform-dependent path quoting and escaping.
+    const files = git(['diff', '--name-only', '-z', `${base}..${hb}`], root).split('\0').filter(Boolean);
     const bad = outOfScope(role, id, files, meta.paths ?? []);
     need(!bad.length, `the ${role} helper changed files outside its scope (${ROLES[role].scope}):\n  ${bad.join('\n  ')}\nAsk it to undo those changes, then land again.`);
     if (ROLES[role].report) need(tryGit(['cat-file', '-e', `${hb}:${KIT_REL}/handoffs/${id}.${ROLES[role].report}.md`], root).ok, `the ${role} helper wrote no report at ${KIT_REL}/handoffs/${id}.${ROLES[role].report}.md`);

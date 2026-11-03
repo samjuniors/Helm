@@ -143,7 +143,7 @@ async function uninstall() {
       fs.rmSync(backup, { recursive: true, force: true });
     }
   }
-  else try { fs.rmdirSync(HOME); } catch { console.log(`Kept ${HOME} (it still holds update backups).`); }
+  try { fs.rmdirSync(HOME); } catch { console.log(`Kept ${HOME} (backups or other files remain).`); }
   console.log(`\nUninstalled. Restart Claude Code and Codex. Antigravity: a project's .agents/mcp_config.json still lists the server; delete that entry (or run: ${NAME} adapt) if you want it gone. Remove ${BIN_DIR} from your PATH if you added it.`);
 }
 
