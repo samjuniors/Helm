@@ -42,6 +42,28 @@ Configure each project's helper behavior in `.agents/product-kit/kit.config.json
 
 This is an example of the orchestrator section, not a complete kit config file. For another agent runtime, review `KIT_AGENT_CMD` and the project's CLI presets before executing. Start with `"approval": "ask"` for unfamiliar agents.
 
+## Project scanning, adoption and regression guards (v0.6.0)
+
+These extend the normal init/recover/continue workflow:
+
+~~~bash
+node bin/helm.mjs scan ../my-existing-app
+node bin/helm.mjs guard baseline --path ../my-existing-app
+# Make changes, then check:
+node bin/helm.mjs guard check --path ../my-existing-app
+~~~
+
+Guard runs detected or configured project test/build commands, which can modify files. Review commands first. A check only proves what it actually tested. Using `--only` is marked PARTIAL and does not satisfy the full guard.
+
+To adopt an existing product, commit your work first. Adoption refuses a dirty tree and creates its kit on the `kit/integration` branch:
+
+~~~bash
+node bin/helm.mjs adopt ../my-existing-app
+node bin/helm.mjs state ../my-existing-app
+~~~
+
+The `kit_consult` MCP tool records a bounded interview, evidence, options, recommendations and plans. Founders can inspect their decisions with `node bin/helm.mjs consult list` and record approval using `consult agree [id] --quote "your own words"`. These records live in local Git metadata and do not automatically travel between computers.
+
 ## Host integration
 
 - **Claude Code:** `node install.mjs --host claude` registers the MCP server. For optional plugin commands, hooks, and agent cards, use `.claude-plugin/` with Claude Code's local marketplace feature.

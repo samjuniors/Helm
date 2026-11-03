@@ -1,6 +1,6 @@
 {
   "name": "@samjuniors/helm",
-  "version": "0.4.1",
+  "version": "0.6.0",
   "description": "Helm: project lifecycle, agent orchestration, Git workflows, QA and recovery for MCP-compatible assistants",
   "type": "module",
   "license": "MIT",
@@ -16,7 +16,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node tests/init-safety-test.mjs && node tests/update-test.mjs && node tests/release-test.mjs && node tests/rename-test.mjs && node tests/v041-compat-test.mjs",
+    "test": "node tests/init-safety-test.mjs && node tests/update-test.mjs && node tests/release-test.mjs && node tests/rename-test.mjs && node tests/v041-compat-test.mjs && node tests/helm-test.mjs",
     "check": "node scripts/check-release.mjs",
     "pack:release": "node scripts/build-release.mjs",
     "prepack": "node scripts/check-release.mjs",
@@ -48,8 +48,16 @@
     "CONTRIBUTING.md",
     "docs",
     "scripts",
-    "tests",
-    ".github"
+    ".github",
+    "tests/package.json",
+    "tests/e2e.mjs",
+    "tests/fake-agent.mjs",
+    "tests/helm-test.mjs",
+    "tests/init-safety-test.mjs",
+    "tests/release-test.mjs",
+    "tests/rename-test.mjs",
+    "tests/update-test.mjs",
+    "tests/v041-compat-test.mjs"
   ],
   "homepage": "https://github.com/samjuniors/Helm#readme",
   "bugs": {

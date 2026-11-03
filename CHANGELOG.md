@@ -1,5 +1,17 @@
 # Helm Changelog
 
+## 0.6.0
+- Scan projects by frontend, backend, data, library, mobile and desktop parts and identify checks protecting each part.
+- Add safe existing-project adoption on a separate kit/integration branch, docs/STATE.md summaries, and refreshable AGENTS.md rules.
+- Add per-part regression guards, partial-check warnings, workspace-aware test discovery and founder-approved roadmap plans.
+- Preserve existing user Git changes, the Helm CLI, legacy engine data, MIT license and release infrastructure.
+- Include regression coverage for the new scanner, guard, consultation, adoption and state features.
+
+## 0.5.0 (features incorporated in v0.6.0; no separate publication)
+- Introduce read-only project scanning, regression guard baselines and structured feature/fix/research consultation.
+- Add five MCP tools (kit_scan, kit_guard, kit_consult, kit_state and kit_adopt), bringing the server to 14 tools.
+
+
 ## 0.4.1
 - Reconciled the maintenance changes from Product Kit 0.4.1 without replacing Helm source, CLI, project memory or the MIT license.
 - Added optional read-only Git/repository audit (`npm run audit:repo`) for versions, tags, release metadata, tracked file hygiene and secret patterns.

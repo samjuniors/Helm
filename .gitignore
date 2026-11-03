@@ -11,3 +11,4 @@ coverage/
 .env.*
 !.env.example
 .nyc_output/
+tests/package-lock.json
