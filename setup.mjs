@@ -47,7 +47,7 @@ function writeShims(dir) {
   for (const file of shimFiles()) {
     if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('HELM-MANAGED-LAUNCHER')) die(`refusing to overwrite an existing non-Helm launcher: ${file}`);
   }
-  if (win) fs.writeFileSync(path.join(BIN_DIR, `${NAME}.cmd`), `@echo off\r\nrem HELM-MANAGED-LAUNCHER\r\nnode "${js}" %*\r\n`);
+  if (win) fs.writeFileSync(path.join(BIN_DIR, `${NAME}.cmd`), `@echo off\r\nrem HELM-MANAGED-LAUNCHER\r\nset "HELM_CMD_SHIM=%~f0"\r\nnode "${js}" %*\r\nset "HELM_EXIT=%errorlevel%"\r\nif not "%HELM_EXIT%"=="0" exit /b %HELM_EXIT%\r\nif /i not "%~1"=="uninstall" exit /b 0\r\nif /i "%~2"=="--dry-run" exit /b 0\r\nif /i "%~3"=="--dry-run" exit /b 0\r\nif /i "%~4"=="--dry-run" exit /b 0\r\nif exist "${STATE}" exit /b 0\r\n(goto) 2>nul & del "%~f0" >nul\r\n`);
   else { const f = path.join(BIN_DIR, NAME); fs.writeFileSync(f, `#!/bin/sh\n# HELM-MANAGED-LAUNCHER\nexec node "${js}" "$@"\n`); fs.chmodSync(f, 0o755); }
 }
 const onPath = () => (process.env.PATH ?? '').split(path.delimiter).some((p) => path.resolve(p) === path.resolve(BIN_DIR));
@@ -130,7 +130,14 @@ async function uninstall() {
   if (rm) { fs.rmSync(cur.dir, { recursive: true, force: true }); console.log(`Deleted ${cur.dir}.`); }
   for (const f of shimFiles()) {
     if (!fs.existsSync(f)) continue;
-    if (fs.readFileSync(f, 'utf8').includes('HELM-MANAGED-LAUNCHER')) fs.rmSync(f, { force: true });
+    if (fs.readFileSync(f, 'utf8').includes('HELM-MANAGED-LAUNCHER')) {
+      // A running Windows .cmd cannot safely be unlinked mid-execution; the
+      // launcher self-deletes after this Node process finishes successfully.
+      const activeLauncher = win && process.env.HELM_CMD_SHIM
+        && path.resolve(process.env.HELM_CMD_SHIM) === path.resolve(f);
+      if (activeLauncher) console.log(`Launcher ${f} will remove itself after uninstall finishes.`);
+      else fs.rmSync(f, { force: true });
+    }
     else console.log(`Kept custom launcher ${f}; it was not created by this Helm installer.`);
   }
   fs.rmSync(STATE, { force: true });

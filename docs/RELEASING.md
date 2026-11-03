@@ -30,6 +30,12 @@ Confirm installation and existing-project upgrade compatibility; test MCP initia
 
 GitHub Actions tests Node 18/22 on Ubuntu/Windows. **At the time of the v0.7.0 audit, runners execute but both OS matrices fail tests; see [issue #2](https://github.com/samjuniors/Helm/issues/2).** This is an actual test blocker, not evidence of a runner/billing failure. Do not mark cross-platform CI as passed. Locally verified release builds and manual uploads are an approved fallback only when their limitations are recorded.
 
+## Bootstrap link compatibility
+
+The public README contains version-pinned bootstrap URLs (`scripts/bootstrap.ps1` and `scripts/bootstrap.sh`). When releasing a new MINOR version, verify the links still resolve to scripts that can download the newest published stable GitHub Release. Never point a public one-line installation command at an unreviewed branch.
+
+Bootstrap scripts must be included in both release archives, tested on their target platforms and must verify release SHA-256 checksums before invoking setup. Keep browser ZIP installation as an alternative for environments where remote script execution is prohibited.
+
 ## Package from the reviewed commit
 
 After the PR is reviewed and merged, verify the intended `main` commit and a clean checkout. The release tag **must point to that exact commit**. Build artifacts from the same source, not from an earlier uploaded ZIP, temporary prototype, or mismatched working tree.

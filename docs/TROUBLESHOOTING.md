@@ -33,12 +33,12 @@ Helm v0.7.0 exposes **14 MCP tools**. An adapter file is not itself proof that a
 
 ## Which installer do I use?
 
-- **New user with a ZIP:** `node setup.mjs install`.
-- **Existing managed setup installation:** `node setup.mjs update` from a **newer** extracted ZIP.
-- **Older extracted-ZIP installation:** `node update.mjs --into OLD-INSTALL` from the newer ZIP.
-- **Git clone:** `git pull --ff-only origin main` (when clean), optionally refreshing MCP registration with `node install.mjs`.
+- **First-time user with no Helm command:** use the reviewed, version-pinned [bootstrap script](INSTALLATION.md#recommended-first-time-bootstrap-no-manual-zip), or download an official ZIP and `SHA256SUMS` manually.
+- **Managed Helm already installed:** `helm install` is idempotent; `helm update` checks downloads and installs future versions; `helm uninstall --dry-run` previews safe removal.
+- **Older manually extracted ZIP with no setup record:** use the new release's `node update.mjs --into OLD-INSTALL`, or follow the documented migration.
+- **Git clone:** update source with `git pull --ff-only origin main` after preserving local work. Never use automatic self-update to replace the checkout.
 
-See the [upgrade decision table](UPGRADING.md#choose-your-upgrade-method). Never run a destructive updater against a Git source checkout.
+If `helm uninstall` reports that the installation is not managed, examine its CLI registration before deleting anything. Removing Helm must not erase application project files. On Windows, v0.9.0+ launchers self-remove after a successful uninstall to avoid a misleading batch-file error.
 
 ## Existing-project adoption refuses to proceed
 
