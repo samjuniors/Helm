@@ -38,6 +38,18 @@ Helm adds a **persistent project workflow** around your existing tools, with hum
 
 Helm orchestrates work; it does **not** replace your coding assistant, perform work independently of a configured agent, or guarantee that generated code is correct.
 
+## New in v0.6.0
+
+Helm includes richer workflows for **existing and partially built projects**:
+
+- **Scan** a repository and the parts that make up the product before changing code.
+- **Guard** against regressions with a test baseline and follow-up checks.
+- **Adopt** an existing project on a separate Git branch, keeping its source files intact.
+- **Consult** on a feature or fix; record a human decision before planning work.
+- **Track state** in a readable summary at `docs/STATE.md`.
+
+Start with `node bin/helm.mjs scan /path/to/project` to inspect a project without installing the kit. See [advanced usage](docs/ADVANCED_USAGE.md) for commands and limits.
+
 ## Quick start
 
 ### Requirements
