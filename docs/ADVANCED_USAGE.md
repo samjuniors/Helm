@@ -71,7 +71,7 @@ The `kit_consult` MCP tool records a bounded interview, evidence, options, recom
 
 ## One-command lifecycle (v0.9.0+)
 
-After installing Helm, use its own CLI for installation maintenance:
+After installing Helm, use its own CLI for installation maintenance. Windows installers add `.helm\bin` to the user's PATH by default; `--no-path` opts out. The bootstrap enables it immediately in the current PowerShell window, but other terminals may need restarting:
 
 ~~~sh
 helm install --dry-run

@@ -3,6 +3,7 @@
 # Downloads and verifies the latest stable release; never runs unverified ZIP contents.
 param(
   [switch]$DryRun,
+  [switch]$NoPath,
   [ValidateSet('all','claude','codex')][string]$Client = 'all'
 )
 $ErrorActionPreference = 'Stop'
@@ -85,11 +86,26 @@ try {
   Write-Output "Verified SHA-256: $actual"
   $nodeArgs = @((Join-Path $source 'setup.mjs'), 'install', '--host', $Client)
   if ($DryRun) { $nodeArgs += '--dry-run' }
+  if ($NoPath) { $nodeArgs += '--no-path' }
   & node @nodeArgs
   if ($LASTEXITCODE -ne 0) { throw 'Helm setup reported an error; existing installations were preserved.' }
   if ($DryRun) {
     Write-Output 'Preview finished. No installation or host registration was changed.'
   } else {
+    if (-not $NoPath) {
+      # The managed installer updates the persistent Windows user PATH; the
+      # current PowerShell process needs a separate refresh to use helm now.
+      $profileHome = [Environment]::GetEnvironmentVariable('USERPROFILE', 'Process')
+      $launcherDir = Join-Path $profileHome '.helm\bin'
+      $launcherFile = Join-Path $launcherDir 'helm.cmd'
+      if (Test-Path -LiteralPath $launcherFile) {
+        $segments = @($env:Path -split ';' | Where-Object { $_ })
+        if (-not (@($segments | Where-Object { $_.TrimEnd('\') -ieq $launcherDir.TrimEnd('\') }).Count -gt 0)) {
+          $env:Path += ';' + $launcherDir
+        }
+        Write-Output 'Helm launcher available in this PowerShell session. Try: helm version'
+      }
+    }
     Write-Output 'Helm installation finished. Restart your coding assistant, then use helm update or helm uninstall.'
   }
 } finally {

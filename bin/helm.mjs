@@ -76,7 +76,7 @@ try {
     console.log('Helm ' + pluginVersion());
   } else if (cmd === 'install' || cmd === 'uninstall') {
     const valid = cmd === 'install'
-      ? new Set(['--dry-run', '--host', '--scope', '--dir', '--in-place', '--force'])
+      ? new Set(['--dry-run', '--host', '--scope', '--dir', '--in-place', '--force', '--no-path'])
       : new Set(['--dry-run', '--yes', '--purge']);
     if (Object.keys(flags).some((f) => !valid.has('--' + f))) die('unsupported ' + cmd + ' option; see helm help');
     if (cmd === 'uninstall' && (rest.includes('--dir') || rest.includes('--force'))) die('uninstall cannot target arbitrary paths');

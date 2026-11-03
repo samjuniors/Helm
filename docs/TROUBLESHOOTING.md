@@ -16,12 +16,20 @@ Install Node.js 18 or newer, restart the terminal, and run `node --version`. Git
 
 ## The `helm` command is not found after setup
 
-The installer creates a launcher under `.helm/bin` but does not add it to PATH. Run it directly:
+From v0.9.1, Windows setup adds Helm's launcher to the **user PATH** by default, but a PowerShell window opened before installation may still have an older PATH value. Close that terminal and open a new one. If Helm is already installed but PATH was never configured, run the launcher directly and use `install` once to repair PATH without reinstalling. The full launcher paths are:
 
 - Windows PowerShell: `& "$HOME\.helm\bin\helm.cmd" version`
 - macOS / Linux: `"$HOME/.helm/bin/helm" version`
 
-Add that bin directory to PATH if you want to use `helm` without its full path. Do not move the installed `.helm/plugin` folder without updating MCP registrations.
+To repair an existing Windows installation from PowerShell without reinstalling any files:
+
+```powershell
+& "$HOME\.helm\bin\helm.cmd" install
+# Reopen PowerShell, then:
+helm version
+```
+
+If it still isn't recognized, check **Windows Environment Variables → User variables → Path** for `%USERPROFILE%\.helm\bin` (or its absolute equivalent). You can add it manually; for the current shell only, use `$env:Path += ";$HOME\.helm\bin"`. On macOS/Linux, add `$HOME/.helm/bin` to your shell PATH. Do not move the installed plugin folder without updating client registrations.
 
 ## MCP tools do not appear in Claude Code or Codex
 

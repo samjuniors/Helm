@@ -17,7 +17,7 @@ const cleanPath = [path.dirname(process.execPath), ...(process.platform === 'win
 const env = { ...process.env, HOME:home, USERPROFILE:home, APPDATA:path.join(home,'AppData','Roaming'),
   LOCALAPPDATA:path.join(home,'AppData','Local'), PATH:cleanPath };
 const output = (r) => (r.stdout || '') + (r.stderr || '');
-const invoke = (dir, args) => spawnSync(process.execPath,[path.join(dir,'bin','helm.mjs'),...args],{
+const invoke = (dir, args) => spawnSync(process.execPath,[path.join(dir,'bin','helm.mjs'),...(args[0]==='install' ? [...args,'--no-path'] : args)],{
   env, encoding:'utf8', timeout:30000, cwd:temp,
 });
 const check = (r, title) => assert.equal(r.status,0,title + ': ' + output(r));
@@ -36,17 +36,17 @@ try {
 
   check(invoke(extracted,['install','--host','codex']),'managed install');
   assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).host,'codex');
-  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.9.0');
+  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.9.1');
   assert.ok(fs.existsSync(target) && fs.existsSync(launcher));
   pass('helm install creates recorded managed installation and launcher');
 
   const version=invoke(target,['version']);
   check(version,'installed CLI version');
-  assert.match(output(version),/Helm 0\.9\.0/);
+  assert.match(output(version),/Helm 0\.9\.1/);
   pass('installed launcher source reports correct version');
 
   check(invoke(target,['install']),'repeated install');
-  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.9.0');
+  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.9.1');
   pass('repeated install is idempotent');
 
   const userFile=path.join(home,'.helm','my-project-notes.txt');

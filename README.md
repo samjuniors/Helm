@@ -51,18 +51,18 @@ Helm orchestrates work; it does **not** replace your coding assistant, perform w
 **Windows PowerShell:**
 
 ~~~powershell
-irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.ps1' | iex
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' | iex
 ~~~
 
 **macOS / Linux:**
 
 ~~~sh
-curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.sh' | sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh' | sh
 ~~~
 
 These commands execute a remote script: [review the Windows script](scripts/bootstrap.ps1) or [Unix script](scripts/bootstrap.sh) before running, or [download and inspect it first](docs/INSTALLATION.md#download-and-inspect-before-execution). The bootstrap downloads the latest official release, verifies SHA-256, runs Helm's guarded installer, and never overwrites an unrecognized installation.
 
-Helm creates a managed copy, checks MCP startup, and registers supported coding clients when available. It does **not** modify your PATH. Use the launcher location shown by setup until you add `.helm/bin` to PATH. See [installation details](docs/INSTALLATION.md) or [manual ZIP installation](docs/INSTALLATION.md#manual-zip-installation).
+Helm creates a managed copy, checks MCP startup, and registers supported coding clients when available. On Windows, the installer safely adds `.helm\bin` to **your user PATH** (not the system PATH), unless you opt out with `--no-path` or bootstrap `-NoPath`. The PowerShell bootstrap also enables `helm` in the current session; other open terminals may need to be restarted. On macOS/Linux, add `.helm/bin` to your shell PATH as shown in the [installation guide](docs/INSTALLATION.md). See [installation details](docs/INSTALLATION.md) or [manual ZIP installation](docs/INSTALLATION.md#manual-zip-installation).
 
 Already have a Git source checkout? See the [source clone instructions](docs/INSTALLATION.md#alternative-source-clone); the updater never rewrites Git history.
 
@@ -90,9 +90,9 @@ Open the project in your MCP-connected coding assistant and ask:
 
 Helm's generated project records are stored in `.agents/product-kit/` for backwards compatibility. Protected approvals remain human decisions.
 
-## Manage Helm from the terminal
+## Updating Helm and managing installation
 
-Once Helm is installed (and its launcher is on PATH), these are the standard commands:
+Once Helm is installed and its launcher is available, these are the standard commands:
 
 ~~~sh
 helm install --dry-run      # Preview installation or registration

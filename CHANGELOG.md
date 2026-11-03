@@ -1,5 +1,11 @@
 # Helm Changelog
 
+## 0.9.1
+- Fix the first-time Windows command-not-found experience: managed installation now adds Helm's launcher directory to the current user's PATH while preserving existing entries and registry value type; `--no-path` keeps it entirely manual.
+- The PowerShell bootstrap makes `helm` available in its current session after a verified installation, while new terminals read the persistent user PATH. Explicit instructions cover reopening older shells.
+- Existing managed users can run `helm install` (via the full launcher path if necessary) to repair PATH without reinstalling or replacing user files. Uninstall removes the Helm PATH entry only if Helm added it.
+- Add isolated Windows registry tests and cross-platform regression coverage; improve README, installation and troubleshooting guidance without changing any of Helm's 14 MCP tools.
+
 ## 0.9.0
 - Add first-time release-based bootstrap scripts for Windows and macOS/Linux that fetch the latest stable GitHub Release and verify its SHA-256 checksum before running the installer.
 - Expose `helm install` and `helm uninstall` (including previews) on the existing CLI. Uninstall confirms destructive actions unless `--yes` is supplied and never removes source clones or unrelated project files.
