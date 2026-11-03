@@ -94,6 +94,20 @@ node setup.mjs uninstall
 
 Platform notes: Windows acceptance tests use an isolated fake home and no actual Claude/Codex registrations. POSIX lifecycle fixtures use stub CLIs. Live external host applications must be verified separately.
 
+## Direct Helm updates (v0.8.0+)
+
+From a setup-managed Helm installation:
+
+~~~sh
+helm update --check
+helm update --dry-run
+helm update
+~~~
+
+The command uses official GitHub Releases, SHA-256 checksums and a bounded, path-validated TGZ extractor, then invokes the existing backed-up installer and MCP startup check. Only recorded setup-managed installations are eligible. Git clones and older manually extracted installations use [their own upgrade methods](UPGRADING.md). A failed verification does not replace installed files.
+
+The ~--check~ and ~--dry-run~ operations fetch release metadata only and do not write to your installation. The full update does not modify your project or rewrite MCP registrations. Restart your client after completion. The archive is unpacked to a temporary folder and removed afterward.
+
 ## Host integration
 
 - **Claude Code:** `node install.mjs --host claude` registers the MCP server. For optional plugin commands, hooks, and agent cards, use `.claude-plugin/` with Claude Code's local marketplace feature.

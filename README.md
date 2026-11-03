@@ -80,6 +80,20 @@ Open the project in your MCP-connected coding assistant and ask:
 
 Helm's generated project records are stored in `.agents/product-kit/` for backwards compatibility. Protected approvals remain human decisions.
 
+## Update Helm in one command
+
+After your initial setup-managed installation is running v0.8.0 or newer, update directly from GitHub Releases:
+
+~~~sh
+helm update --check     # Check for a new version
+helm update --dry-run   # Preview the update
+helm update             # Verify and install it
+~~~
+
+Helm verifies the release checksum, retains a backup, tests MCP startup and preserves your project files. Restart your coding assistant after an update.
+
+**Using v0.7.1 or earlier?** Upgrade to v0.8.0 once using the [manual ZIP upgrade guide](docs/UPGRADING.md). Git source clones continue updating with Git; automatic self-update never overwrites source checkouts.
+
 ## How it works
 
 ```text

@@ -61,6 +61,29 @@ helm continue --path ./my-app
 
 For an existing Git repository, start with `helm scan /path/to/project`. Commit existing work before attempting `helm adopt /path/to/project`, which creates an integration branch instead of editing the current branch.
 
+## Keeping Helm updated after installation
+
+Starting with v0.8.0, setup-managed installs can update without manually downloading a new ZIP:
+
+```sh
+helm update --check
+helm update --dry-run
+helm update
+```
+
+You must have the Helm launcher on PATH, or invoke the launcher from the managed installation. On Windows PowerShell, for example:
+
+```powershell
+& "$HOME\.helm\bin\helm.cmd" update --check
+& "$HOME\.helm\bin\helm.cmd" update
+```
+
+The updater checks GitHub Releases, verifies the download checksum, backs up the existing installation and validates MCP startup. Your projects and MCP registration paths are preserved. **Restart your coding assistant afterwards.**
+
+If you installed **v0.7.1 or older**, first upgrade once using a downloaded v0.8.0 ZIP and `node setup.mjs update` from that new folder. After that, future versions can use `helm update`.
+
+See [Upgrading safely](UPGRADING.md#built-in-updates-v080-and-later) for limitations and other installation types.
+
 ## Alternative: source clone
 
 For contributors or anyone who prefers to control the source directly:

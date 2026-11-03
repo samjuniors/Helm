@@ -4,6 +4,12 @@
 
 This guide covers common setup, CLI, MCP, and project workflow problems. Include the Helm version, operating system, host application/version, and **sanitized** error output when reporting an issue.
 
+## `helm update` refuses to run
+
+Self-update requires **v0.8.0 or newer** and an installation recorded by the setup assistant. Git clones deliberately refuse self-update; run `git status` and `git pull --ff-only origin main` instead. Manually extracted installs without a setup record require `node update.mjs --into OLD-INSTALL` from a newer release.
+
+If GitHub cannot be reached, check internet access and the GitHub API rate limit. A missing release asset, failed SHA-256 verification or unsafe archive is a **stop condition**, not an error to bypass. Review the published [release notes](releases/README.md) and do not delete update backups or project data to work around the refusal.
+
 ## The terminal says “node is not recognized” or “command not found”
 
 Install Node.js 18 or newer, restart the terminal, and run `node --version`. Git is also required; verify with `git --version`. If an installation still fails, check that those commands are on PATH.

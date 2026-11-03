@@ -1,5 +1,12 @@
 # Helm Changelog
 
+## 0.8.0
+- Add \`helm update\` for managed Helm installations: discover the latest published stable GitHub Release, download a checksum-verified TGZ, stage it safely, then invoke the existing backup/rollback updater and MCP startup validation.
+- Add \`helm update --check\` and \`helm update --dry-run\` for a read-only update check and preview without downloading/extracting the archive.
+- Refuse self-update in Git checkouts, unrecorded or mismatched installations, and malformed/unsafe release archives; do not alter project code or MCP registration paths.
+- Add offline fixture tests for version checks, archive integrity, safe extraction, update/rollback behavior and cross-platform compatibility.
+- Keep the existing manual setup, ZIP download, CLI, project engine, and 14 MCP tools.
+
 ## 0.7.1
 - Correct cross-platform setup tests to verify actual MCP upgrade success, downgrade refusal and safe backup purging.
 - Remove empty Helm setup folders after purge while retaining unrelated user files and project data.

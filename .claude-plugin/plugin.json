@@ -1,6 +1,6 @@
 {
   "name": "helm",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Project lifecycle, roadmap, multi-agent orchestration, QA and recovery",
   "author": {
     "name": "samjuniors"
