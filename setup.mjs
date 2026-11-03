@@ -75,7 +75,7 @@ function install() {
     const selected = hostTargets(opt('host', 'all'));
     const owned = new Set(installedHostTargets(cur));
     const added = [];
-    console.log(`Existing managed Helm ${meta(cur.dir).version}: ${cur.dir}. No plugin files will be copied or overwritten.`);
+    console.log(`Already installed: ${NAME} ${meta(cur.dir).version} at ${cur.dir}. No plugin files will be copied or overwritten.`);
     for (const host of selected) {
       if (!has(host)) { console.log(`  ${host}: CLI unavailable; skipped (no registration written).`); continue; }
       const exists = registered(host, NAME);
