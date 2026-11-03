@@ -19,7 +19,7 @@ const win = process.platform === 'win32';
 const q = (a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
 const run = (cmd, args) => (win ? spawnSync([cmd, ...args.map(q)].join(' '), { shell: true, encoding: 'utf8' }) : spawnSync(cmd, args, { encoding: 'utf8' }));
 const has = (cmd) => { const r = run(cmd, ['--version']); return !r.error && r.status === 0; };
-if (!['all', 'claude', 'codex'].includes(host)) { console.error('--host must be all, claude or codex'); process.exit(1); }
+if (!['all', 'none', 'claude', 'codex'].includes(host)) { console.error('--host must be all, none, claude or codex'); process.exit(1); }
 if (!['user', 'project', 'local'].includes(scope)) { console.error('--scope must be user, project or local'); process.exit(1); }
 
 // 1. prove the server starts here (Node works, files are in place)
@@ -38,7 +38,9 @@ for (const x of targets) {
   if (dry) { console.log(`[dry run] ${x.name}: ${shown}`); continue; }
   if (!has(x.cmd)) { console.log(`${x.name}: "${x.cmd}" is not installed or not on PATH, so nothing was registered. When it is, run:\n  ${shown}`); continue; }
   let r = run(x.cmd, x.args);
-  if (r.status !== 0 && /already exists|already configured/i.test(`${r.stderr}${r.stdout}`)) { run(x.cmd, x.remove); r = run(x.cmd, x.args); }
+  // Never silently remove and re-add an existing MCP registration: its settings
+  // might contain user-edited permissions, environment variables or timeouts.
+  // A conflict is a review step, not consent to overwrite user configuration.
   if (r.status === 0) console.log(`${x.name}: registered. ${(r.stdout || '').trim().split('\n')[0]}`);
   else { failed = true; console.log(`${x.name}: the command failed:\n  ${shown}\n${(r.stderr || r.stdout || '').trim().slice(0, 400)}`); }
 }

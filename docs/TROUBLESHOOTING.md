@@ -39,6 +39,14 @@ If another `helm` MCP server is already registered, the managed installer may re
 
 Helm v0.7.0 exposes **14 MCP tools**. An adapter file is not itself proof that a particular client has connected successfully.
 
+## A coding assistant is detected but not connected
+
+`helm doctor` shows application markers and launchable CLI programs separately. Detection does not prove an MCP registration. Automatic configuration is supported only for Claude Code and Codex CLIs. Re-run `helm setup` to select a new supported client; the wizard previews its changes and refuses to overwrite foreign registrations.
+
+Antigravity can load global settings from `.gemini/config/mcp_config.json` and project settings from `.agents/mcp_config.json`. Claude Desktop is separate from Claude Code and may use an MSIX-specific configuration. For VS Code or Cursor, review `helm print-config --host vscode` or `--host cursor` and the editor's current MCP documentation. Refresh or restart the client after editing its configuration.
+
+If the wizard does not open, launch it from a real interactive terminal. Non-interactive scripts should use `helm install --host codex --dry-run` and then `helm install --host codex` instead. `helm doctor --json` does not modify files.
+
 ## Which installer do I use?
 
 - **First-time user with no Helm command:** use the reviewed, version-pinned [bootstrap script](INSTALLATION.md#recommended-first-time-bootstrap-no-manual-zip), or download an official ZIP and `SHA256SUMS` manually.

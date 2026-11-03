@@ -4,7 +4,8 @@
 param(
   [switch]$DryRun,
   [switch]$NoPath,
-  [ValidateSet('all','claude','codex')][string]$Client = 'all'
+  [ValidateSet('all','none','claude','codex')][string]$Client = 'all',
+  [string]$InstallDir = ''
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -84,10 +85,17 @@ try {
     throw 'Helm setup.mjs is missing from the downloaded release.'
   }
   Write-Output "Verified SHA-256: $actual"
-  $nodeArgs = @((Join-Path $source 'setup.mjs'), 'install', '--host', $Client)
-  if ($DryRun) { $nodeArgs += '--dry-run' }
-  if ($NoPath) { $nodeArgs += '--no-path' }
-  & node @nodeArgs
+  $guided = (-not $DryRun) -and (-not $PSBoundParameters.ContainsKey('Client')) -and (-not $PSBoundParameters.ContainsKey('InstallDir')) -and (-not [Console]::IsInputRedirected)
+  if ($guided) {
+    Write-Output 'Opening Helm guided setup. Choose clients and installation directory, preview changes, then approve.'
+    & node (Join-Path $source 'wizard.mjs')
+  } else {
+    $nodeArgs = @((Join-Path $source 'setup.mjs'), 'install', '--host', $Client)
+    if ($InstallDir) { $nodeArgs += @('--dir', $InstallDir) }
+    if ($DryRun) { $nodeArgs += '--dry-run' }
+    if ($NoPath) { $nodeArgs += '--no-path' }
+    & node @nodeArgs
+  }
   if ($LASTEXITCODE -ne 0) { throw 'Helm setup reported an error; existing installations were preserved.' }
   if ($DryRun) {
     Write-Output 'Preview finished. No installation or host registration was changed.'
@@ -106,7 +114,11 @@ try {
         Write-Output 'Helm launcher available in this PowerShell session. Try: helm version'
       }
     }
-    Write-Output 'Helm installation finished. Restart your coding assistant, then use helm update or helm uninstall.'
+    if ($guided) {
+      Write-Output 'Setup wizard finished. If you approved installation, restart your selected coding assistant.'
+    } else {
+      Write-Output 'Helm installation finished. Restart your coding assistant, then use helm update or helm uninstall.'
+    }
   }
 } finally {
   if ($temporary -and (Test-Path -LiteralPath $temporary)) {

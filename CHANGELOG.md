@@ -1,5 +1,12 @@
 # Helm Changelog
 
+## 0.10.0
+- Add a lightweight guided installer wizard available from the normal setup launchers and `helm setup`. Show detected coding environments, choose supported clients and installation folder, preview exact planned actions, and confirm explicitly before writing.
+- Add advanced read-only `helm doctor [--json] [--check]` and `helm setup --json`; keep explicit `helm install --host ... --dir ... --dry-run` scripting for PowerShell, CMD and Unix.
+- First-time verified bootstrap opens the wizard in an interactive terminal; specifying a host uses non-interactive scripted installation. A client can be added to an existing Helm installation without replacing existing code, project data or unrelated registrations.
+- Detect pending stable Helm releases in the wizard, offering opt-in update. Never install updates automatically. Provide accurate separate instructions for Antigravity, Claude Desktop, VS Code and Cursor where automatic host integration has not yet been verified.
+- Remove implicit deletion/recreation of duplicate MCP registrations, and add dedicated isolated guided/setup lifecycle tests. Keep all 14 MCP tools and the existing install/update/uninstall paths.
+
 ## 0.9.1
 - Fix the first-time Windows command-not-found experience: managed installation now adds Helm's launcher directory to the current user's PATH while preserving existing entries and registry value type; `--no-path` keeps it entirely manual.
 - The PowerShell bootstrap makes `helm` available in its current session after a verified installation, while new terminals read the persistent user PATH. Explicit instructions cover reopening older shells.

@@ -4,6 +4,16 @@
 
 Helm requires **Node.js 18+** and **Git**. A compatible MCP client is needed for AI tool integration, but you can use the command-line interface without one.
 
+## Guided and advanced setup
+
+**First-time or nontechnical users:** use the official version-pinned bootstrap. When started from an interactive terminal it opens a text wizard that detects coding environments, prompts for supported clients and an installation directory, previews the intended changes and requests explicit confirmation. This is a terminal wizard, not a separate desktop application.
+
+**Developers and automation:** use explicit `--host` and optional `--dir` arguments in PowerShell, Command Prompt or a Unix shell. Non-interactive scripts do not need to navigate any menu. A dry run remains read-only.
+
+After installation, `helm setup` reopens the wizard and `helm doctor --json` provides read-only structured diagnostics.
+
+Automatic registration covers Claude Code and Codex where their command-line tools are available. Codex CLI and IDE extension share configuration. Antigravity, Claude Desktop, Cursor and VS Code appear in detection but receive manual instructions; no automatic integration with those clients is claimed.
+
 ## Recommended: first-time bootstrap (no manual ZIP)
 
 With [Node.js 18+](https://nodejs.org/) and Git installed, use a **version-pinned** bootstrap to fetch the latest published stable Helm release, verify its SHA-256 checksum, and install a managed copy.
@@ -11,23 +21,42 @@ With [Node.js 18+](https://nodejs.org/) and Git installed, use a **version-pinne
 **Windows PowerShell:**
 
 ~~~powershell
-irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' | iex
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.ps1' | iex
 ~~~
 
 **macOS / Linux:**
 
 ~~~sh
-curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh' | sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.sh' | sh
 ~~~
 
 Both commands fetch code and execute it immediately. **Review the script before executing.** The safer inspect-first method is below. Bootstrapping uses the official GitHub Releases API and assets; it does not clone the Git repository or write anything into your existing project.
+
+### Advanced one-command bootstrap (skip prompts)
+
+On Windows PowerShell, download and inspect the version-pinned script first, then run:
+
+```powershell
+& .\helm-bootstrap.ps1 -Client codex -InstallDir 'D:\Tools\Helm'
+# Or choose no agent registration:
+& .\helm-bootstrap.ps1 -Client none
+```
+
+On macOS / Linux after downloading and reviewing `helm-bootstrap.sh`:
+
+```sh
+sh ./helm-bootstrap.sh --host codex --dir "$HOME/tools/helm"
+sh ./helm-bootstrap.sh --host none
+```
+
+A custom installation directory is not silently deleted by uninstall: the wizard will explain that its folder remains for manual review. The managed launcher and installation record are stored under `.helm/`.
 
 ### Download and inspect before execution
 
 On Windows:
 
 ~~~powershell
-Invoke-WebRequest 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' -OutFile .\helm-bootstrap.ps1
+Invoke-WebRequest 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.ps1' -OutFile .\helm-bootstrap.ps1
 Get-Content .\helm-bootstrap.ps1
 & .\helm-bootstrap.ps1 -DryRun
 & .\helm-bootstrap.ps1
@@ -38,7 +67,7 @@ PowerShell execution policy may block scripts saved from the internet. Review th
 On macOS or Linux:
 
 ~~~sh
-curl -fsSLo ./helm-bootstrap.sh 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh'
+curl -fsSLo ./helm-bootstrap.sh 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.sh'
 cat ./helm-bootstrap.sh
 sh ./helm-bootstrap.sh --dry-run
 sh ./helm-bootstrap.sh
@@ -46,21 +75,36 @@ sh ./helm-bootstrap.sh
 
 The scripts use a temporary folder, verify the downloaded official archive against `SHA256SUMS`, check archive entries and run the existing setup assistant. On Windows, the installer appends only Helm's launcher folder to the current user's PATH unless `-NoPath` is selected. The PowerShell bootstrap also activates the launcher in its current session. Other open terminals may need restarting. Unix shell startup files are not edited automatically; follow the PATH instructions below.
 
+### Choosing clients and installation location
+
+In the guided wizard, selecting an automatic client is always explicit. Supported choices are `claude`, `codex`, both (`all`), or `none`. Helm checks each CLI before attempting registration and leaves foreign or customized MCP registrations untouched rather than replacing them. Selecting an existing managed installation can add another supported client without moving or replacing your installed files.
+
+For advanced terminal users, the equivalent commands after downloading an official release are:
+
+```powershell
+node .\setup.mjs install --host codex --dir 'D:\Tools\Helm' --dry-run
+node .\setup.mjs install --host codex --dir 'D:\Tools\Helm'
+node .\setup.mjs status
+```
+
+You can later run `helm setup` or `helm install --host claude` to add a client. Change of installation path or registration scope requires explicit manual migration; it is never a silent reinstall.
+
 ### Which Helm command should I use later?
 
 Once the launcher is available:
 
 ~~~sh
+helm setup
+helm doctor
+helm doctor --json
 helm install --dry-run
-helm install
+helm install --host codex
 helm update
 helm uninstall --dry-run
 helm uninstall
 ~~~
 
 `helm uninstall` asks for confirmation before removing recognized managed files. It never deletes application repositories or user-created project data. In a non-interactive script, explicitly pass `--yes`; only use `--purge` if you intend to remove recognized Helm update backups.
-
-## Manual ZIP installation
 
 ## Manual ZIP installation
 
@@ -86,7 +130,7 @@ sh setup.sh install
 node setup.mjs status
 ~~~
 
-The setup assistant creates a managed installation under your home directory, validates the Helm MCP server, and attempts to register Claude Code and/or Codex if present. It does not install those clients. On Windows it adds the Helm launcher to the **user PATH** by default (opt out using `--no-path`), preserving all existing entries. Open a new PowerShell terminal if an older one does not recognize `helm`. On Unix systems, add the launcher folder to your shell PATH manually.
+The setup assistant creates a managed installation under your home directory (or `--dir`), validates the Helm MCP server, and registers only the CLI hosts you explicitly selected. Choose `none` to install the Helm CLI without registering an agent. It does not install those clients. On Windows it adds the Helm launcher to the **user PATH** by default (opt out using `--no-path`), preserving all existing entries. Open a new PowerShell terminal if an older one does not recognize `helm`. On Unix systems, add the launcher folder to your shell PATH manually.
 
 | Platform | Managed copy | CLI launcher |
 | --- | --- | --- |
