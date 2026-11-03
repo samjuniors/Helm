@@ -50,6 +50,26 @@ Helm includes richer workflows for **existing and partially built projects**:
 
 Start with `node bin/helm.mjs scan /path/to/project` to inspect a project without installing the kit. See [advanced usage](docs/ADVANCED_USAGE.md) for commands and limits.
 
+## One-command setup
+
+For a downloaded release, extract the ZIP, then use Helm's setup assistant.
+
+- **Windows:** double-click `setup.cmd` or run `node setup.mjs install` in PowerShell.
+- **macOS and Linux:** run `sh setup.sh install` or `node setup.mjs install`.
+- **Preview before installing:** `node setup.mjs install --dry-run`.
+
+Setup installs a managed copy in your home directory, validates the MCP server, and registers it with Claude Code or Codex when those clients are available. A terminal launcher is created under `.helm/bin`; add that directory to your PATH to use the short `helm` command from anywhere. No PATH modification is made automatically.
+
+To install only for one client, use `node setup.mjs install --host codex` or `--host claude`. Antigravity remains configured per project, not globally.
+
+| Action | Run from the extracted release |
+| --- | --- |
+| Check current installation | `node setup.mjs status` |
+| Update an installed copy | `node setup.mjs update` from the **newer** release folder |
+| Remove Helm's managed installation | `node setup.mjs uninstall` and confirm |
+
+An update keeps backups and the same MCP registrations. Uninstall never removes your project files or Git repositories. Run `node setup.mjs uninstall --dry-run` to preview removal. If you installed from a Git clone, you can instead keep using the manual `node install.mjs` workflow shown below.
+
 ## Quick start
 
 ### Requirements

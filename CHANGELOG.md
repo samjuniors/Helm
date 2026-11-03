@@ -1,5 +1,11 @@
 # Helm Changelog
 
+## 0.7.0
+- Add cross-platform setup with a simple Windows menu and Unix shell entry point for installing, updating, uninstalling, and checking Helm.
+- Install a managed plugin copy and optional launcher, while preserving Git source clones, project data, agent configuration, and existing integrations.
+- Validate the installed MCP server, protect manual installations from overwrite, and keep backups during upgrades.
+- Add installation lifecycle regression tests and update the public quick start and advanced usage guide.
+
 ## 0.6.0
 - Scan projects by frontend, backend, data, library, mobile and desktop parts and identify checks protecting each part.
 - Add safe existing-project adoption on a separate kit/integration branch, docs/STATE.md summaries, and refreshable AGENTS.md rules.
