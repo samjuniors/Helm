@@ -1,5 +1,11 @@
 # Helm Changelog
 
+## 0.7.1
+- Correct cross-platform setup tests to verify actual MCP upgrade success, downgrade refusal and safe backup purging.
+- Remove empty Helm setup folders after purge while retaining unrelated user files and project data.
+- Harden helper scope checks by using NUL-delimited Git file paths and separator normalization; allow exact helper reports while blocking out-of-scope source edits.
+- Require versioned custom release notes during release metadata validation.
+
 ## 0.7.0
 - Add cross-platform setup with a simple Windows menu and Unix shell entry point for installing, updating, uninstalling, and checking Helm.
 - Install a managed plugin copy and optional launcher, while preserving Git source clones, project data, agent configuration, and existing integrations.

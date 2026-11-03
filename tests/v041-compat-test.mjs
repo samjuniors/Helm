@@ -15,9 +15,9 @@ try{
  mkdirSync(path.join(old,'bin'));writeFileSync(path.join(old,'bin','helm.mjs'),'// existing Helm CLI');
  const update=spawnSync(process.execPath,[path.join(root,'update.mjs'),'--into',old],{cwd:root,encoding:'utf8'});
  assert.equal(update.status,0,update.stderr||update.stdout);
- assert.equal(JSON.parse(readFileSync(path.join(old,'package.json'))).version,'0.7.0');
+ assert.equal(JSON.parse(readFileSync(path.join(old,'package.json'))).version,'0.7.1');
  assert.equal(readFileSync(path.join(old,'.plugin-name'),'utf8').trim(),'helm');
- console.log('PASS: existing Helm 0.4.1 upgrades to 0.7.0 and preserves identity');
+ console.log('PASS: existing Helm 0.4.1 upgrades to 0.7.1 and preserves identity');
  const repeat=spawnSync(process.execPath,[path.join(root,'update.mjs'),'--into',old],{cwd:root,encoding:'utf8'});
  assert.equal(repeat.status,0,repeat.stderr);assert.match(repeat.stdout,/Already at/);
  console.log('PASS: repeated upgrade is a no-op');

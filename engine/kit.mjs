@@ -276,9 +276,11 @@ const ROLES = {
 };
 const helperBranch = (id, role) => `helper/${id}-${role}`;
 function outOfScope(role, id, files, paths) {
-  const rep = ROLES[role].report ? `${KIT_REL}/handoffs/${id}.${ROLES[role].report}.md` : null;
-  return files.filter((f) => {
-    if (f === rep) return false;
+  const reportName = ROLES[role].report ? `${id}.${ROLES[role].report}.md` : null;
+  const expectedReports = reportName ? new Set([`${KIT_REL}/handoffs/${reportName}`, `.agents/product-kit/handoffs/${reportName}`]) : new Set();
+  return files.filter((raw) => {
+    const f = raw.replace(/\\/g, '/'); // Git reports paths with different separators on Windows hosts.
+    if (expectedReports.has(f)) return false;
     if (role === 'tester') return !TEST_PATH.test(f);
     if (role === 'debugger') return f.startsWith(`${KIT_REL}/`);
     if (role === 'implementer') return !paths.some((x) => f === x || f.startsWith(x.endsWith('/') ? x : `${x}/`));
@@ -920,7 +922,8 @@ const cmds = {
     if (hw) need(dirtyCount(hw.worktree) === 0, `the ${role} helper has uncommitted work in ${hw.worktree}; ask it to run checkpoint`);
     need(dirtyCount(stepWt.worktree) === 0, `the step worktree ${stepWt.worktree} has uncommitted work; checkpoint it first`);
     const base = git(['merge-base', `step/${id}`, hb], root);
-    const files = git(['diff', '--name-only', `${base}..${hb}`], root).split('\n').filter(Boolean);
+    // NUL-delimited names avoid Git's platform-dependent path quoting and escaping.
+    const files = git(['diff', '--name-only', '-z', `${base}..${hb}`], root).split('\0').filter(Boolean);
     const bad = outOfScope(role, id, files, meta.paths ?? []);
     need(!bad.length, `the ${role} helper changed files outside its scope (${ROLES[role].scope}):\n  ${bad.join('\n  ')}\nAsk it to undo those changes, then land again.`);
     if (ROLES[role].report) need(tryGit(['cat-file', '-e', `${hb}:${KIT_REL}/handoffs/${id}.${ROLES[role].report}.md`], root).ok, `the ${role} helper wrote no report at ${KIT_REL}/handoffs/${id}.${ROLES[role].report}.md`);
