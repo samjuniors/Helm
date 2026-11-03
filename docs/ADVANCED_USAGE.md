@@ -1,6 +1,6 @@
 # Helm — Advanced usage and technical reference
 
-This page contains optional configuration, debugging, and maintainer-oriented details. For the first installation and basic workflow, start with the [README](../README.md).
+This page contains optional configuration, debugging, and maintainer-oriented details. For installation and the basic workflow, start with [README](../README.md), [Installation](INSTALLATION.md), or [Upgrading](UPGRADING.md).
 
 ## Where project state is stored
 
@@ -19,6 +19,11 @@ When initialized, a project contains `.agents/product-kit/`. This path is kept f
 | `agent_wait` | Wait for an agent to finish |
 | `agent_land` | Review scope and merge completed helper work |
 | `agent_cancel` | Stop an agent run |
+| `kit_scan` | Inspect project maturity, parts and available checks |
+| `kit_guard` | Record and compare regression test baselines |
+| `kit_consult` | Structure evidence, alternatives and founder-approved plans |
+| `kit_state` | Summarize current project state |
+| `kit_adopt` | Bring Helm into an existing Git repository on a separate branch |
 
 Founder-only commands (approvals, decisions, and milestone closure) remain restricted to the human operating the CLI.
 
