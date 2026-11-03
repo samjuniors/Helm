@@ -69,6 +69,26 @@ node bin/helm.mjs state ../my-existing-app
 
 The `kit_consult` MCP tool records a bounded interview, evidence, options, recommendations and plans. Founders can inspect their decisions with `node bin/helm.mjs consult list` and record approval using `consult agree [id] --quote "your own words"`. These records live in local Git metadata and do not automatically travel between computers.
 
+## One-command lifecycle (v0.9.0+)
+
+After installing Helm, use its own CLI for installation maintenance:
+
+~~~sh
+helm install --dry-run
+helm install --host codex
+helm update --check
+helm update --dry-run
+helm update
+helm uninstall --dry-run
+helm uninstall
+~~~
+
+The `install` and `uninstall` commands delegate to the existing safeguarded setup engine. Uninstall requires confirmation, or an explicit `--yes` in non-interactive CI environments. Do not enable unattended uninstalls without review. `--purge` is an optional, intentionally destructive backup-cleanup mode.
+
+For the **first installation**, the `helm` command may not exist yet. Use the version-pinned [bootstrap guide](INSTALLATION.md#recommended-first-time-bootstrap-no-manual-zip) (PowerShell on Windows, shell script on Unix), inspect the script before execution, or manually download the official ZIP/checksum.
+
+Git source checkouts should continue to use Git for source updates. Uninstalling a managed Helm installation never deletes an unrelated Git clone or existing project.
+
 ## Installer lifecycle and safety
 
 The release ZIP includes `setup.mjs`, `setup.cmd` for Windows, and `setup.sh` for macOS/Linux. These commands manage Helm's installed copy and MCP registration; they do not install or modify project kits.

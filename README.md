@@ -46,15 +46,25 @@ Helm orchestrates work; it does **not** replace your coding assistant, perform w
 
 ### 1. Install Helm
 
-Download and extract the [latest Helm ZIP](https://github.com/samjuniors/Helm/releases/latest), and compare its SHA-256 hash with the release's `SHA256SUMS`.
+**First time, no Git clone or ZIP extraction needed.** With Node.js 18+ and Git installed, use a version-pinned, source-visible bootstrap:
 
-- **Windows:** double-click `setup.cmd` in the extracted `helm` folder.
-- **macOS / Linux:** from the extracted folder run `sh setup.sh install`.
-- **All platforms:** preview the operation with `node setup.mjs install --dry-run`.
+**Windows PowerShell:**
 
-Setup creates a managed copy, checks MCP startup, and attempts to register installed Claude Code and/or Codex clients. It does **not** modify PATH, so use the launcher path shown by setup until you add `.helm/bin` to PATH. [Detailed installation guide](docs/INSTALLATION.md).
+~~~powershell
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.ps1' | iex
+~~~
 
-For a source checkout instead, run `git clone https://github.com/samjuniors/Helm.git`, open the clone and run `node install.mjs`. That registration points to the clone itself, which must remain at its registered path.
+**macOS / Linux:**
+
+~~~sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.sh' | sh
+~~~
+
+These commands execute a remote script: [review the Windows script](scripts/bootstrap.ps1) or [Unix script](scripts/bootstrap.sh) before running, or [download and inspect it first](docs/INSTALLATION.md#download-and-inspect-before-execution). The bootstrap downloads the latest official release, verifies SHA-256, runs Helm's guarded installer, and never overwrites an unrecognized installation.
+
+Helm creates a managed copy, checks MCP startup, and registers supported coding clients when available. It does **not** modify your PATH. Use the launcher location shown by setup until you add `.helm/bin` to PATH. See [installation details](docs/INSTALLATION.md) or [manual ZIP installation](docs/INSTALLATION.md#manual-zip-installation).
+
+Already have a Git source checkout? See the [source clone instructions](docs/INSTALLATION.md#alternative-source-clone); the updater never rewrites Git history.
 
 ### 2. Start or inspect a project
 
@@ -80,19 +90,23 @@ Open the project in your MCP-connected coding assistant and ask:
 
 Helm's generated project records are stored in `.agents/product-kit/` for backwards compatibility. Protected approvals remain human decisions.
 
-## Update Helm in one command
+## Manage Helm from the terminal
 
-After your initial setup-managed installation is running v0.8.0 or newer, update directly from GitHub Releases:
+Once Helm is installed (and its launcher is on PATH), these are the standard commands:
 
 ~~~sh
-helm update --check     # Check for a new version
-helm update --dry-run   # Preview the update
-helm update             # Verify and install it
+helm install --dry-run      # Preview installation or registration
+helm install                # Install a managed copy; existing ones are left intact
+helm update --check         # Look for a new stable release
+helm update --dry-run       # Preview the next update
+helm update                 # Verify, back up and install it
+helm uninstall --dry-run    # Preview removal
+helm uninstall              # Ask before removing the managed Helm copy
 ~~~
 
-Helm verifies the release checksum, retains a backup, tests MCP startup and preserves your project files. Restart your coding assistant after an update.
+The uninstaller removes only verified Helm-managed files and selected MCP registrations; **it does not remove application projects, Git repositories or user notes**. Restart your coding client after installing, updating or uninstalling.
 
-**Using v0.7.1 or earlier?** Upgrade to v0.8.0 once using the [manual ZIP upgrade guide](docs/UPGRADING.md). Git source clones continue updating with Git; automatic self-update never overwrites source checkouts.
+The built-in updater requires a setup-managed installation running v0.8.0 or later. Older ZIP installations and Git clones keep their [documented upgrade methods](docs/UPGRADING.md).
 
 ## How it works
 

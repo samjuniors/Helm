@@ -6,6 +6,7 @@ Each release is identified by a Git tag and has an official GitHub Releases page
 
 | Version | Highlights | Notes | Official release |
 | --- | --- | --- | --- |
+| **v0.9.0** | Verified first-time bootstrap and install/uninstall CLI | [v0.9.0](v0.9.0.md) | [GitHub](https://github.com/samjuniors/Helm/releases/tag/v0.9.0) |
 | **v0.8.0** | Verified, built-in update checks and automatic managed installation updates | [v0.8.0](v0.8.0.md) | [GitHub](https://github.com/samjuniors/Helm/releases/tag/v0.8.0) |
 | **v0.7.1** | CI and safe setup hardening | [v0.7.1](v0.7.1.md) | [GitHub](https://github.com/samjuniors/Helm/releases/tag/v0.7.1) |
 | **v0.7.0** | Managed Windows/Unix setup, update, uninstall and status | [v0.7.0](v0.7.0.md) | [GitHub](https://github.com/samjuniors/Helm/releases/tag/v0.7.0) |

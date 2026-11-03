@@ -4,7 +4,65 @@
 
 Helm requires **Node.js 18+** and **Git**. A compatible MCP client is needed for AI tool integration, but you can use the command-line interface without one.
 
-## Recommended: a versioned GitHub release
+## Recommended: first-time bootstrap (no manual ZIP)
+
+With [Node.js 18+](https://nodejs.org/) and Git installed, use a **version-pinned** bootstrap to fetch the latest published stable Helm release, verify its SHA-256 checksum, and install a managed copy.
+
+**Windows PowerShell:**
+
+~~~powershell
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.ps1' | iex
+~~~
+
+**macOS / Linux:**
+
+~~~sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.sh' | sh
+~~~
+
+Both commands fetch code and execute it immediately. **Review the script before executing.** The safer inspect-first method is below. Bootstrapping uses the official GitHub Releases API and assets; it does not clone the Git repository or write anything into your existing project.
+
+### Download and inspect before execution
+
+On Windows:
+
+~~~powershell
+Invoke-WebRequest 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.ps1' -OutFile .\helm-bootstrap.ps1
+Get-Content .\helm-bootstrap.ps1
+& .\helm-bootstrap.ps1 -DryRun
+& .\helm-bootstrap.ps1
+~~~
+
+PowerShell execution policy may block scripts saved from the internet. Review the script and use your organization's approved execution method; do not disable security controls blindly.
+
+On macOS or Linux:
+
+~~~sh
+curl -fsSLo ./helm-bootstrap.sh 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.0/scripts/bootstrap.sh'
+cat ./helm-bootstrap.sh
+sh ./helm-bootstrap.sh --dry-run
+sh ./helm-bootstrap.sh
+~~~
+
+The scripts use a temporary folder, verify the downloaded official archive against `SHA256SUMS`, check archive entries and run the existing setup assistant. Neither script automatically edits PATH.
+
+### Which Helm command should I use later?
+
+Once the launcher is available:
+
+~~~sh
+helm install --dry-run
+helm install
+helm update
+helm uninstall --dry-run
+helm uninstall
+~~~
+
+`helm uninstall` asks for confirmation before removing recognized managed files. It never deletes application repositories or user-created project data. In a non-interactive script, explicitly pass `--yes`; only use `--purge` if you intend to remove recognized Helm update backups.
+
+## Manual ZIP installation
+
+## Manual ZIP installation
 
 1. Download the ZIP and `SHA256SUMS` from [the latest release](https://github.com/samjuniors/Helm/releases/latest).
 2. Compare the ZIP SHA-256 digest to the matching value in the checksum file. On Windows, run `Get-FileHash -Algorithm SHA256 helm-vX.Y.Z.zip` in PowerShell. On Linux use `sha256sum helm-vX.Y.Z.zip`; on macOS use `shasum -a 256 helm-vX.Y.Z.zip`.

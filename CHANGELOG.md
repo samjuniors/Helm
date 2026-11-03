@@ -1,5 +1,11 @@
 # Helm Changelog
 
+## 0.9.0
+- Add first-time release-based bootstrap scripts for Windows and macOS/Linux that fetch the latest stable GitHub Release and verify its SHA-256 checksum before running the installer.
+- Expose `helm install` and `helm uninstall` (including previews) on the existing CLI. Uninstall confirms destructive actions unless `--yes` is supplied and never removes source clones or unrelated project files.
+- Keep `helm update` as the official in-place upgrade for managed installations and retain manual ZIP/Git paths for existing installations.
+- Add cross-platform CLI lifecycle regression tests and public beginner-to-advanced install/uninstall documentation.
+
 ## 0.8.0
 - Add \`helm update\` for managed Helm installations: discover the latest published stable GitHub Release, download a checksum-verified TGZ, stage it safely, then invoke the existing backup/rollback updater and MCP startup validation.
 - Add \`helm update --check\` and \`helm update --dry-run\` for a read-only update check and preview without downloading/extracting the archive.
