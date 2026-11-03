@@ -1,8 +1,8 @@
-# Open-source launch checklist for Helm
+# Public repository review and maintenance checklist
 
-Helm's code is currently stored in a **private** GitHub repository. Writing a public-quality README does not make the repository public. Only the maintainer should decide when to change visibility.
+Helm is **public on GitHub**. Publication does not establish that every historical commit, release, integration, or third-party component has received a comprehensive security and license audit. Review regularly before promoting the project more widely.
 
-## Before making Helm public
+## Public exposure audit (review regularly)
 
 - [ ] Audit the **entire Git history**, current branches, past releases, issues, workflows, and committed files for secrets, tokens, user data, customer code, and private repository references. Cleaning the latest commit alone is not sufficient.
 - [ ] Confirm ownership and redistribution rights for all code, templates, docs, and any code adapted from other projects. Verify the MIT license covers the material actually included.
@@ -11,17 +11,17 @@ Helm's code is currently stored in a **private** GitHub repository. Writing a pu
 - [ ] Review the latest release assets and checksums; confirm that public release files contain no private content.
 - [ ] Review [SECURITY.md](../SECURITY.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md), and issue/PR templates.
 
-**Visibility changes should be made by the owner through GitHub repository settings after reviewing the risks.** Making a private repository public can expose source history and past releases; treat it as a security-impacting operation.
+**Repository visibility is already public.** A pattern scan is not a comprehensive secrets audit; any suspected exposure should be investigated privately under the security policy.
 
 ## Repository storefront
 
-After the safety review and public launch, consider this grounded metadata (GitHub repo Settings → General / About):
+Maintain discoverable repository metadata in GitHub's About settings:
 
 - **Description:** `Local-first MCP project orchestration: milestones, recovery, QA, Git workflows, and optional AI helper agents.`
 - **Website:** Link to the GitHub repository or a real project site if one exists.
 - **Topics:** `mcp`, `mcp-server`, `ai-agents`, `developer-tools`, `claude-code`, `codex`, `automation`, `project-management`
 - **Community:** Enable Issues and (if there is capacity to moderate them) Discussions. Keep issue templates enabled.
-- **Visibility:** Public only when ready; **do not** assume public discovery while private.
+- **Visibility:** Public; continue to audit new contributions, tags and release archives.
 
 Prefer a short screen recording or a real terminal session demonstrating `recover → continue → watch` over promotional promises. Avoid badges claiming CI success until the checks actually run.
 

@@ -2,7 +2,7 @@
 
 Thanks for considering a contribution. Helm aims to be a **small, dependable MCP orchestration system** that works with different coding assistants and respects existing projects.
 
-Contributions are welcome when repository access permits. The repository is currently **private**; for public forks and outside pull requests, the maintainer must first make it public.
+Helm is a public MIT-licensed repository. Contributions, bug reports, and focused pull requests are welcome.
 
 ## Ways to contribute
 
@@ -22,8 +22,6 @@ Large redesigns or new dependencies should be discussed before implementation.
 4. Confirm that you own or are permitted to contribute every included file.
 
 ## Fork, branch, and propose changes
-
-When the repository is public:
 
 ```sh
 git clone https://github.com/YOUR-USERNAME/Helm.git
@@ -48,7 +46,7 @@ npm run test:integration
 npm pack --dry-run --ignore-scripts
 ```
 
-Use the tests relevant to your change and report exactly what ran, which operating system, and whether any test was skipped. The hosted GitHub Actions workflow may be unavailable because of account-level runner/billing restrictions. **Do not label a PR "tested" just because it was merged or an Action failed before starting.**
+Use the tests relevant to your change and report exactly what ran, which operating system, and whether any test was skipped. GitHub Actions reports its actual test results in each pull request. Review failed jobs rather than assuming missing runners; see [the active CI tracking issue](https://github.com/samjuniors/Helm/issues/2). **Do not claim unexecuted checks passed.**
 
 ## Protect user projects
 

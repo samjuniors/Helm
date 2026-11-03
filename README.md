@@ -35,87 +35,50 @@ Helm adds a **persistent project workflow** around your existing tools, with hum
 | **Git-aware execution** | Use dedicated worktrees and scope checks for helper-agent work |
 | **Human control** | Configure approvals, agent limits, and timeouts; keep key decisions with the project owner |
 | **Local-first MCP server** | Run over stdio with Node.js, without a Helm-hosted account or service |
+| **Repository scanning and adoption** | Inspect new or existing projects, then adopt through a separate Git branch |
+| **Regression guards** | Compare recorded test baselines against subsequent changes, with partial checks labeled clearly |
 
 Helm orchestrates work; it does **not** replace your coding assistant, perform work independently of a configured agent, or guarantee that generated code is correct.
 
-## New in v0.6.0
-
-Helm includes richer workflows for **existing and partially built projects**:
-
-- **Scan** a repository and the parts that make up the product before changing code.
-- **Guard** against regressions with a test baseline and follow-up checks.
-- **Adopt** an existing project on a separate Git branch, keeping its source files intact.
-- **Consult** on a feature or fix; record a human decision before planning work.
-- **Track state** in a readable summary at `docs/STATE.md`.
-
-Start with `node bin/helm.mjs scan /path/to/project` to inspect a project without installing the kit. See [advanced usage](docs/ADVANCED_USAGE.md) for commands and limits.
-
-## One-command setup
-
-For a downloaded release, extract the ZIP, then use Helm's setup assistant.
-
-- **Windows:** double-click `setup.cmd` or run `node setup.mjs install` in PowerShell.
-- **macOS and Linux:** run `sh setup.sh install` or `node setup.mjs install`.
-- **Preview before installing:** `node setup.mjs install --dry-run`.
-
-Setup installs a managed copy in your home directory, validates the MCP server, and registers it with Claude Code or Codex when those clients are available. A terminal launcher is created under `.helm/bin`; add that directory to your PATH to use the short `helm` command from anywhere. No PATH modification is made automatically.
-
-To install only for one client, use `node setup.mjs install --host codex` or `--host claude`. Antigravity remains configured per project, not globally.
-
-| Action | Run from the extracted release |
-| --- | --- |
-| Check current installation | `node setup.mjs status` |
-| Update an installed copy | `node setup.mjs update` from the **newer** release folder |
-| Remove Helm's managed installation | `node setup.mjs uninstall` and confirm |
-
-An update keeps backups and the same MCP registrations. Uninstall never removes your project files or Git repositories. Run `node setup.mjs uninstall --dry-run` to preview removal. If you installed from a Git clone, you can instead keep using the manual `node install.mjs` workflow shown below.
-
 ## Quick start
 
-### Requirements
-
-- **Node.js 18 or newer**
-- **Git**
-- A supported MCP-capable coding assistant for agent integration (or just a terminal for the CLI)
+**Requirements:** Node.js 18+, Git, and (for MCP integration) a coding assistant with MCP support.
 
 ### 1. Install Helm
 
-Clone the repository to a permanent location:
+Download and extract the [latest Helm ZIP](https://github.com/samjuniors/Helm/releases/latest), and compare its SHA-256 hash with the release's `SHA256SUMS`.
 
-```bash
-git clone https://github.com/samjuniors/Helm.git
-cd Helm
-node install.mjs
-```
+- **Windows:** double-click `setup.cmd` in the extracted `helm` folder.
+- **macOS / Linux:** from the extracted folder run `sh setup.sh install`.
+- **All platforms:** preview the operation with `node setup.mjs install --dry-run`.
 
-The installer checks the local MCP server and attempts to register it with **Claude Code and/or Codex** if their CLIs are available. Use `node install.mjs --dry-run` to preview registration without changing your configuration.
+Setup creates a managed copy, checks MCP startup, and attempts to register installed Claude Code and/or Codex clients. It does **not** modify PATH, so use the launcher path shown by setup until you add `.helm/bin` to PATH. [Detailed installation guide](docs/INSTALLATION.md).
 
-Prefer a packaged version? See [Releases](https://github.com/samjuniors/Helm/releases) for versioned ZIP downloads and checksums.
+For a source checkout instead, run `git clone https://github.com/samjuniors/Helm.git`, open the clone and run `node install.mjs`. That registration points to the clone itself, which must remain at its registered path.
 
-### 2. Start a project
+### 2. Start or inspect a project
 
-From the Helm directory:
+After adding the launcher to PATH (or using the full launcher path):
 
-```bash
-node bin/helm.mjs init ../my-app --name "My App" --brief "A simple app to manage personal tasks."
-```
+~~~sh
+# New project
+helm init ./my-app --name "My App" --brief "A simple app to manage tasks."
+helm recover --path ./my-app
+helm continue --path ./my-app
 
-For an **existing project**, use its folder instead of `../my-app`. Helm preserves existing source files and does not automatically commit pre-existing uncommitted changes. It refuses to overwrite an already initialized Helm kit.
+# Existing project: scan before changing anything
+helm scan ./existing-app
+~~~
 
-### 3. Recover and continue
+For a clean existing Git repository, `helm adopt ./existing-app` can introduce Helm on a separate integration branch. Review the result before merging.
 
-```bash
-node bin/helm.mjs recover --path ../my-app
-node bin/helm.mjs continue --path ../my-app
-```
+### 3. Work with your coding assistant
 
-Open the project in your coding assistant and try:
+Open the project in your MCP-connected coding assistant and ask:
 
-> "Recover this project, show me what's done and what's next, then continue with the next milestone."
+> "Recover this project, summarize the current milestone and decisions, and propose the next safe task."
 
-Helm creates project-specific files in `.agents/product-kit/`. You can inspect and commit the roadmap, vision, and progress history like any other project files.
-
-[Full getting-started walkthrough](TODO-MAP.md)
+Helm's generated project records are stored in `.agents/product-kit/` for backwards compatibility. Protected approvals remain human decisions.
 
 ## How it works
 
@@ -157,29 +120,19 @@ node bin/helm.mjs print-config --host codex
 
 Client-specific configuration and external-agent behavior vary by environment. See [integration setup and compatibility notes](docs/ADVANCED_USAGE.md) before relying on a new host.
 
-## Updating Helm
+## Installation, upgrades and help
 
-For an installation from a Git clone, first check for local changes:
+Different installation methods need different upgrades. **Do not use the ZIP updater on a Git source clone.** The [upgrade guide](docs/UPGRADING.md) explains how to update managed setup copies, older ZIP installations, source clones, and project engines without replacing project data.
 
-```bash
-git status
-git pull --ff-only origin main
-```
+| Need | Guide |
+| --- | --- |
+| Install and connect a supported client | [Installation](docs/INSTALLATION.md) |
+| Upgrade, roll back, or uninstall | [Upgrading safely](docs/UPGRADING.md) |
+| Fix missing commands, MCP errors, or guard failures | [Troubleshooting](docs/TROUBLESHOOTING.md) |
+| Advanced agents, 14 MCP tools, adapters and security boundaries | [Advanced usage](docs/ADVANCED_USAGE.md) |
+| Read changes by published version | [Release notes](docs/releases/README.md) and [Changelog](CHANGELOG.md) |
 
-For an installation from a downloaded ZIP, extract the **new** version separately and use its updater:
-
-```bash
-node update.mjs --into /path/to/existing/helm --dry-run
-node update.mjs --into /path/to/existing/helm
-```
-
-To refresh Helm's generated engine inside a project while preserving its existing roadmap and records:
-
-```bash
-node bin/helm.mjs upgrade-project --path /path/to/project
-```
-
-Back up important projects and review changes before upgrading. Read the [changelog](CHANGELOG.md) and [release downloads](https://github.com/samjuniors/Helm/releases).
+Review the [latest release](https://github.com/samjuniors/Helm/releases/latest) before installing. The GitHub TGZ is downloadable, but the package is not advertised as an npm-registry installation.
 
 ## Contributing
 

@@ -2,9 +2,9 @@
 
 Tick these in order. Everything marked **you** is a thing only you can do (decisions, approvals); the agent does the rest.
 
-## A. Install the plugin once (about 10 minutes)
+## A. Install Helm (source checkout or release)
 - [ ] **you** Check you have Node 18+ and git: `node -v`, `git --version`.
-- [ ] **you** Put this folder somewhere permanent, for example `C:\tools\product-kit-plugin` or `~/tools/product-kit-plugin`.
+- [ ] **you** If using a Git clone, keep that folder somewhere permanent, for example `C:\tools\Helm` or `~/tools/Helm`.
 - [ ] **you** Connect it: from this folder run **`node install.mjs`**. It first proves the server starts on your computer, then registers it with Claude Code and Codex (whichever is installed; use `--host claude` or `--host codex` for one, `--dry-run` to only see the commands). For the other tools, or if you prefer to do it by hand, run `node bin/helm.mjs print-config` and use the snippet for your tool:
   - Claude Code, full plugin (tools + session hook + `/kit-init`, `/kit-recover`, `/kit-continue` + helper sub-agents): add this folder as a local marketplace and install `helm` (see README, "Claude Code"). Or only the tools: `claude mcp add helm -- node <path>/server/mcp.mjs`.
   - Codex, VS Code, Cursor: paste the printed MCP snippet into that tool's MCP settings.

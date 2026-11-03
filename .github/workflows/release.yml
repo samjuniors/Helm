@@ -49,6 +49,12 @@ jobs:
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Verify custom version-specific release notes
+        if: steps.version.outputs.publish == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          test -s "docs/releases/$TAG.md" || { echo "Missing custom release notes for $TAG"; exit 1; }
       - name: Build versioned assets
         if: steps.version.outputs.publish == 'true'
         run: npm run pack:release
@@ -60,4 +66,4 @@ jobs:
         run: |
           git tag "$TAG" "$GITHUB_SHA"
           git push origin "$TAG"
-          gh release create "$TAG" dist/helm-"$TAG".zip dist/helm-"$TAG".tgz dist/SHA256SUMS --verify-tag --title "Helm $TAG" --notes-file CHANGELOG.md
+          gh release create "$TAG" dist/helm-"$TAG".zip dist/helm-"$TAG".tgz dist/SHA256SUMS --verify-tag --title "Helm $TAG" --notes-file "docs/releases/$TAG.md"
