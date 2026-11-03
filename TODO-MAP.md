@@ -9,7 +9,7 @@ Tick these in order. Everything marked **you** is a thing only you can do (decis
   - Claude Code, full plugin (tools + session hook + `/kit-init`, `/kit-recover`, `/kit-continue` + helper sub-agents): add this folder as a local marketplace and install `helm` (see README, "Claude Code"). Or only the tools: `claude mcp add helm -- node <path>/server/mcp.mjs`.
   - Codex, VS Code, Cursor: paste the printed MCP snippet into that tool's MCP settings.
 - [ ] After step C2 the project already contains the registration for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`) and Antigravity (`.agents/mcp_config.json`). Claude Code asks you to approve a project `.mcp.json` once; Codex needs the project marked trusted; Antigravity needs its MCP list refreshed.
-- [ ] **you** Restart the tool. Ask it: "list your helm tools". You should see nine: `kit_init`, `kit_run`, `kit_roadmap_add`, `agent_policy`, `agent_spawn`, `agent_status`, `agent_wait`, `agent_land`, `agent_cancel`.
+- [ ] **you** Restart the tool. Ask it: "list your helm tools". You should see 14 tools: `kit_init`, `kit_run`, `kit_roadmap_add`, `agent_policy`, `agent_spawn`, `agent_status`, `agent_wait`, `agent_land`, `agent_cancel`, `kit_scan`, `kit_guard`, `kit_consult`, `kit_state`, `kit_adopt`.
 
 ## B. Let the runtime start helper agents (optional, 5 minutes)
 - [ ] **you** In a terminal, check your agent CLI works headless: `claude -p "say hi"` (or `codex exec "say hi"`). If it does not, skip this section: the agent can still hand you cards for parallel chats.

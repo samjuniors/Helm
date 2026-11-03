@@ -115,7 +115,7 @@ Developer + coding assistant
 
 The coding assistant decides what work to propose. Helm exposes tools to track it and enforces configured limits on helper-agent execution. Helpers are optional; a small task can stay with one agent. Agent worktrees organize changes but are **not security sandboxes**.
 
-The MCP server provides nine tools covering initialization, roadmap updates, workflow commands, agent policy, spawning, status, waiting, landing, and cancellation. [Explore the technical architecture](docs/ADVANCED_USAGE.md).
+The MCP server exposes **14 tools** covering initialization, roadmap updates, workflow commands, agent policy, helper-agent execution, project scanning, regression guards, structured consultation, project-state summaries, and existing-project adoption. [Explore the technical architecture](docs/ADVANCED_USAGE.md).
 
 ## Integrations
 
