@@ -67,11 +67,18 @@ r = await call(c, 'agent_wait', { run_id: id3, timeout_sec: 30 }); ok(/failed \(
 ok((await call(c, 'agent_land', { run_id: id3 })).err, 'failed run cannot be landed');
 r = await call(c, 'agent_spawn', { step: 'G1.1', role: 'debugger', task: 'Debug something that does not exist at all', reason: 'fourth helper must hit the per-step limit' }); ok(r.err && /maxPerStep/.test(r.text), 'per-step limit enforced');
 console.log('8. timeout, cancel, concurrency');
-setCfg({ maxPerStep: 10, timeoutMinutes: 0.03, maxConcurrent: 1 });
+// Separate concurrency from timeout so slower Windows runners do not time out
+// while the second spawn is still checking the first worker's worktree.
+setCfg({ maxPerStep: 10, timeoutMinutes: 5, maxConcurrent: 1 });
 await call(c, 'kit_run', { command: 'claim', args: ['G1.3', '--agent', 'lead'] });
-r = await call(c, 'agent_spawn', { step: 'G1.3', role: 'researcher', task: 'Research something slowly. MODE:sleep', reason: 'to exercise the timeout of the runtime' }); const id4 = runId(r.text); if (!id4) console.log('   spawn4 said:', r.text.slice(0, 500));
-r = await call(c, 'agent_spawn', { step: 'G1.3', role: 'researcher', task: 'Another one. MODE:sleep', reason: 'to exercise the concurrency limit' }); ok(r.err && /maxConcurrent/.test(r.text), 'concurrency limit enforced while one is running');
-r = await call(c, 'agent_wait', { run_id: id4, timeout_sec: 20 }); ok(/timed_out/.test(r.text), 'runaway agent killed at the timeout');
+r = await call(c, 'agent_spawn', { step: 'G1.3', role: 'researcher', task: 'Research something slowly. MODE:sleep', reason: 'to exercise the concurrency limit while a worker is active' }); const id4 = runId(r.text); if (!id4) console.log('   spawn4 said:', r.text.slice(0, 500));
+r = await call(c, 'agent_spawn', { step: 'G1.3', role: 'debugger', task: 'Another one. MODE:sleep', reason: 'to exercise the concurrency limit without colliding with the first worker worktree' }); ok(r.err && /maxConcurrent/.test(r.text), 'concurrency limit enforced while one is running');
+r = await call(c, 'agent_cancel', { run_id: id4 }); ok(/cancelled/.test(r.text), 'concurrency fixture worker can be cancelled cleanly');
+// Fresh worker, separate role/worktree, and a 12-second deadline cover cold
+// process startup while still exercising real runtime timeout enforcement.
+setCfg({ timeoutMinutes: 0.2 });
+r = await call(c, 'agent_spawn', { step: 'G1.3', role: 'debugger', task: 'Research slowly. MODE:sleep', reason: 'to exercise the timeout of the runtime' }); const timedId = runId(r.text); if (!timedId) console.log('   timeout spawn said:', r.text.slice(0, 500));
+r = await call(c, 'agent_wait', { run_id: timedId, timeout_sec: 35 }); ok(/timed_out/.test(r.text), 'runaway agent killed at the timeout');
 setCfg({ timeoutMinutes: 5 });
 r = await call(c, 'agent_spawn', { step: 'G1.1', role: 'researcher', task: 'Research slowly. MODE:sleep', reason: 'to exercise cancelling a running helper agent' }); const id5 = runId(r.text); if (!id5) console.log('   spawn5 said:', r.text.slice(0, 400));
 await new Promise((x) => setTimeout(x, 1200)); r = await call(c, 'agent_cancel', { run_id: id5 }); ok(/cancelled/.test(r.text), 'agent_cancel stops a running agent');
