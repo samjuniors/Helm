@@ -62,7 +62,7 @@ function install() {
   if (Number(process.versions.node.split('.')[0]) < 18) die('Node 18 or newer is required (check: node -v).');
   if (!has('git')) console.log('Note: git was not found. The kit needs git in your projects (https://git-scm.com).');
   const cur = readState();
-  if (cur && isOurs(cur.dir)) { console.log(`Already installed: ${NAME} ${meta(cur.dir).version} at ${cur.dir}.\nTo update: unzip the newer version anywhere and run its setup, choose update.\nExisting files are preserved. Run update from the extracted newer release instead of reinstalling over them.`); return; }
+  if (cur && isOurs(cur.dir)) { console.log(`Already installed: ${NAME} ${meta(cur.dir).version} at ${cur.dir}.\nFor a managed install, run helm update --check and helm update.\nExisting files are preserved. Use update instead of reinstalling over them.`); return; }
   if (cur && !isOurs(cur.dir)) die('An existing install record references a missing or invalid Helm folder. Review ~/.helm/install.json; refusing to overwrite.');
   const inPlace = flag('in-place');
   const target = inPlace ? here : path.resolve(opt('dir', path.join(HOME, 'plugin')));
@@ -87,7 +87,7 @@ function install() {
   if (dry) { console.log(`\n[dry run] nothing was changed. The real run registers ${path.join(target, 'server', 'mcp.mjs')} (the permanent copy), not the path shown above.`); return; }
   writeShims(target);
   writeState({ name: NAME, dir: target, inPlace, scope: opt('scope', 'user'), host: opt('host', 'all'), installedAt: new Date().toISOString(), version: meta(target).version });
-  console.log(`\nInstalled ${NAME} ${meta(target).version}.\nNext:\n 1. Restart Claude Code / Codex so they load it. Check in Codex: codex mcp list\n 2. ${pathHelp()}\n 3. In a project: ${NAME} init . --name "My App" --brief "..."   (new product)   or   ${NAME} adopt .   (existing project, clean git tree)\n 4. Antigravity is wired per project by init/adopt. Re-run this setup any time to update or uninstall.`);
+  console.log(`\nInstalled ${NAME} ${meta(target).version}.\nNext:\n 1. Restart Claude Code / Codex so they load it. Check in Codex: codex mcp list\n 2. ${pathHelp()}\n 3. In a project: ${NAME} init . --name "My App" --brief "..."   (new product)   or   ${NAME} adopt .   (existing project, clean git tree)\n 4. For future releases: run helm update --check, helm update --dry-run, then helm update. Antigravity is wired per project by init/adopt.`);
 }
 
 function update() {
@@ -154,7 +154,7 @@ function status() {
   console.log(`${NAME} ${ok ? meta(cur.dir).version : '(folder missing or damaged)'} installed at ${cur.dir}${cur.inPlace ? ' (in place)' : ''}\nSince ${cur.installedAt?.slice(0, 10)}${cur.updatedAt ? `, updated ${cur.updatedAt.slice(0, 10)}` : ''}`);
   for (const [label, c] of [['Claude Code', 'claude'], ['Codex', 'codex']]) { const r = registered(c, cur.name); console.log(`${label.padEnd(12)} ${r === null ? 'not installed on this computer' : r ? 'registered' : 'NOT registered (run: node setup.mjs install --force)'}`); }
   console.log(`Launcher     ${shimFiles().every((f) => fs.existsSync(f)) ? shimFiles()[0] : 'missing'}\n${pathHelp()}`);
-  console.log(`This folder is ${meta(here)?.version}${meta(here) && ok && meta(here).version !== meta(cur.dir).version ? ` (differs from the installed one: run update to switch)` : ''}.`);
+  console.log(`This folder is ${meta(here)?.version}${meta(here) && ok && meta(here).version !== meta(cur.dir).version ? ` (differs from the installed one: run node setup.mjs update here, or helm update in your managed installation)` : ''}.`);
 }
 
 async function menu() {

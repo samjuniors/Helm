@@ -8,12 +8,33 @@ The Helm plugin, its registered MCP server, and each project's copied `.agents/p
 
 | Existing installation | Safe method |
 | --- | --- |
-| Managed installation created by the **v0.7.0+ setup assistant** (record at `.helm/install.json`) | Run `node setup.mjs update` from a newly extracted release |
+| **v0.8.0+ setup-managed** Helm | Run `helm update` (after preview with `--check` or `--dry-run`) |
+| **v0.7.x setup-managed** Helm | Upgrade to v0.8.0 once using a newly extracted release and `node setup.mjs update` |
 | Older manually extracted ZIP, **without** a setup record | Run the new release's `node update.mjs --into OLD-INSTALL` |
 | Git source checkout containing `.git` | Use `git pull --ff-only` after reviewing changes; never use the ZIP updater on a Git clone |
 | Existing project with a copied kit engine | Upgrade separately only when needed, after backing up project work |
 
 Before any upgrade, read the [new release notes](releases/README.md), preserve your current work, and verify the download checksum.
+
+## Built-in updates (v0.8.0 and later)
+
+If your Helm plugin was installed using the **managed setup assistant**, v0.8.0 adds a simpler way to update directly from GitHub Releases:
+
+```sh
+helm update --check
+helm update --dry-run
+helm update
+```
+
+- `--check` checks the latest stable published release and reports whether an update is available.
+- `--dry-run` shows the planned update without modifying installed files or downloading an archive.
+- `helm update` downloads the official TGZ and checksum, verifies both, stages the files outside your installation, then uses Helm's backup/rollback updater and MCP startup test.
+
+These commands work only after you have v0.8.0 (or newer) installed in a **setup-managed** copy. If you have **v0.7.1 or earlier**, use the manual ZIP process below **one time** to reach v0.8.0.
+
+If your installation came from `git clone`, the built-in updater refuses to replace that source checkout. Use the Git workflow described below. Manually extracted ZIPs without `.helm/install.json` continue using the existing `update.mjs --into` workflow. Nothing automatically changes a project's own `.agents/product-kit/` state.
+
+The updater requires internet access to GitHub. Unverified downloads, missing checksums, corrupt archives, downgrades and unrecognized installations are refused. It leaves project files and registrations unchanged. Restart the MCP client after a successful update.
 
 ## Managed setup installation
 
