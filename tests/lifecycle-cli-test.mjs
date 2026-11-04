@@ -42,7 +42,7 @@ try {
 
   const version=invoke(target,['version']);
   check(version,'installed CLI version');
-  assert.match(output(version),/Helm 0\.10\.0/);
+  assert.match(output(version),/Helm 0\.11\.0/);
   pass('installed launcher source reports correct version');
 
   check(invoke(target,['install']),'repeated install');
