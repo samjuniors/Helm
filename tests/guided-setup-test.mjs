@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn,spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { discoverClients, parseClientSelection, selectedHostFlag } from '../server/setup-discovery.mjs';
 import { latestStatus } from '../wizard.mjs';
@@ -113,7 +113,20 @@ try{
   pass('guided wizard refuses non-interactive execution with clear CLI alternative');
   if (process.platform === 'linux' && spawnSync('which',['script'],{encoding:'utf8'}).status===0) {
     const cmd=JSON.stringify(process.execPath)+' '+JSON.stringify(path.join(root,'wizard.mjs'));
-    const tty=spawnSync('script',['-q','-e','-c',cmd,'/dev/null'],{input:'q\n',env,cwd:temp,encoding:'utf8',timeout:12000});
+    // Deliver the keystroke after the wizard actually renders its prompt.
+    // Piping q before the program starts loses input in util-linux script(1).
+    const tty=await new Promise((resolve,reject)=>{
+      const child=spawn('script',['-q','-e','-c',cmd,'/dev/null'],{env,cwd:temp,stdio:'pipe'});
+      let stdout='',stderr='',sent=false;
+      const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('wizard pseudo-terminal did not exit after prompt: '+stdout));},15000);
+      child.stdout.on('data',chunk=>{
+        stdout+=chunk.toString('utf8');
+        if(!sent&&stdout.includes('Choose [1-6 or q]')){sent=true;child.stdin.write('q\\n');child.stdin.end();}
+      });
+      child.stderr.on('data',chunk=>{stderr+=chunk.toString('utf8');});
+      child.on('error',error=>{clearTimeout(timeout);reject(error);});
+      child.on('close',(status)=>{clearTimeout(timeout);resolve({status,stdout,stderr});});
+    });
     assert.equal(tty.status,0,'pseudo-terminal wizard quit: '+out(tty));
     assert.match(out(tty),/Helm\s+·\s+Setup & Integration Manager/);
     pass('Linux pseudo-terminal wizard opens, renders setup menu and exits without writes');
