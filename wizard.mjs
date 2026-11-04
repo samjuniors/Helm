@@ -16,8 +16,23 @@ const setupFile=path.join(root,'setup.mjs');
 const defaultDir=path.join(home,'.helm','plugin');
 const log=(s='')=>console.log(s);
 const call=(args)=>spawnSync(process.execPath,[setupFile,...args],{stdio:'inherit'}).status??1;
+// Queue input as soon as the terminal starts: pseudo-terminal keystrokes can arrive
+// before the async update check completes. readline.question can lose these early lines.
+const readers=new WeakMap();
+const attachReader=(rl)=>{
+  const queue=[],waiting=[];let closed=false;
+  rl.on('line',line=>{if(waiting.length)waiting.shift()(line);else queue.push(line);});
+  rl.on('close',()=>{closed=true;while(waiting.length)waiting.shift()(null);});
+  readers.set(rl,prompt=>{
+    rl.setPrompt(prompt);rl.prompt();
+    if(queue.length)return Promise.resolve(queue.shift());
+    if(closed)return Promise.reject(Object.assign(new Error('Cancelled'),{cancelled:true}));
+    return new Promise((resolve,reject)=>waiting.push(line=>line===null
+      ? reject(Object.assign(new Error('Cancelled'),{cancelled:true})) : resolve(line)));
+  });
+};
 const ask=async (rl,prompt,fallback='')=>{
-  const answer=(await rl.question(prompt)).trim();
+  const answer=(await readers.get(rl)(prompt)).trim();
   if(['q','quit','exit'].includes(answer.toLowerCase()))throw Object.assign(new Error('Cancelled'),{cancelled:true});
   return answer||fallback;
 };
@@ -66,7 +81,7 @@ const manualInstructions=(clients,server)=>{
     if(c.id==='claude_desktop')log('    Quit Claude Desktop before editing. MSIX installations can use different private settings.');
   }
   log('  MCP server to register: '+server);
-  log('  Use helm print-config --host codex|claude|cursor|vscode for sample syntax.');
+  log('  Use helm connect --host all --path <project> --dry-run then --yes for project-only Claude Code/Codex.\n  Use helm print-config --host codex|claude|cursor|vscode for sample syntax.');
 };
 async function guidedInstall(rl,snapshot){
   const {installed,clients}=snapshot;
@@ -88,8 +103,7 @@ async function guidedInstall(rl,snapshot){
   }else{
     folder=path.resolve(await ask(rl,'  Installation folder (Enter for '+defaultDir+'): ',defaultDir));
   }
-  const addPath=process.platform==='win32'?
-    (await ask(rl,'  Add Helm to your Windows user PATH? [Y/n]: ','Y')).toLowerCase()!=='n':false;
+  const addPath=(await ask(rl,'  Persist Helm on your user PATH (Windows registry or shell profile)? [Y/n]: ','Y')).toLowerCase()!=='n';
   const args=['install','--host',host,...(installed.status==='installed'?[]:['--dir',folder]),...(!addPath?['--no-path']:[])];
   log('\n── Review changes before approval ──');
   if(call([...args,'--dry-run'])!==0){log('Preview failed: no changes applied.');return;}
@@ -120,6 +134,7 @@ async function uninstall(rl){
 export async function runWizard(){
   if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Guided setup requires an interactive terminal. Scripts can use helm install --host codex --dry-run followed by helm install --host codex.');
   const rl=readline.createInterface({input:process.stdin,output:process.stdout});
+  attachReader(rl);
   let lastCheckedVersion=null;
   let release=null;
   try{
@@ -142,7 +157,7 @@ export async function runWizard(){
       log('  5) Guided uninstall');
       log('  6) IDE / desktop connection instructions');
       log('  q) Quit');
-      const choice=await ask(rl,'  Choose [1-6 or q]: ');
+      const choice=await ask(rl,'  Choose [1-7 or q]: ');
       if(choice==='1')await guidedInstall(rl,current);
       else if(choice==='2')await checkOrUpdate(rl,current.installed);
       else if(choice==='3')await checkOrUpdate(rl,current.installed,true);

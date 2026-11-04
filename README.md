@@ -54,13 +54,13 @@ Helm orchestrates work; it does **not** replace your coding assistant, perform w
 **Windows PowerShell:**
 
 ~~~powershell
-irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.ps1' | iex
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.11.0/scripts/bootstrap.ps1' | iex
 ~~~
 
 **macOS / Linux:**
 
 ~~~sh
-curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.sh' | sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.11.0/scripts/bootstrap.sh' | sh
 ~~~
 
 These commands execute a remote script: [review the Windows script](scripts/bootstrap.ps1) or [Unix script](scripts/bootstrap.sh) before running, or [download and inspect it first](docs/INSTALLATION.md#download-and-inspect-before-execution). The bootstrap downloads the latest official release, verifies SHA-256, runs Helm's guarded installer, and never overwrites an unrecognized installation.
@@ -198,3 +198,31 @@ Helm is available under the [MIT License](LICENSE).
 ---
 
 *Build with a plan. Resume with context. Keep control of your project.*
+
+
+## Reliable environment repair and project-only MCP setup (v0.11)
+
+Helm uses the absolute Node executable path in its managed launchers and registrations. On Windows the installer maintains only the current user's launcher PATH entry; on macOS/Linux it adds a removable Helm-owned block to the relevant Bash, Zsh or Fish startup file. Existing profile content is preserved and backed up before modification; reopen your terminal to load the change.
+
+\`\`\`sh
+helm doctor
+helm doctor --repair --dry-run
+helm doctor --repair --yes
+\`\`\`
+
+To use Helm for **one project only** without changing global Claude Code/Codex MCP registrations, first install the Helm CLI with \`helm install --host none\`, then explicitly connect that project:
+
+\`\`\`sh
+helm connect --path /path/to/project --host all --dry-run
+helm connect --path /path/to/project --host all --yes
+helm disconnect --path /path/to/project --host all --dry-run
+helm disconnect --path /path/to/project --host all --yes
+\`\`\`
+
+The equivalent \`helm install --scope project\` and \`helm uninstall --scope project\` work with \`--path\`, but they **only configure the selected project's MCP files**; they do not uninstall the global Helm CLI. The project must be trusted for Codex to read \`.codex/config.toml\`. Both integrations use the current installed Helm server path, and modifications to foreign/custom entries are refused.
+
+Helm never generates or guesses API credentials. Missing variables such as \`AGENT_ROUTER_TOKEN\` must be configured securely by the owner or the provider; Helm's PATH repair is not an authentication bypass.
+
+## Offline-first release publishing
+
+Run \`helm release --dry-run\` for a read-only plan. \`helm release\` runs metadata checks, all local tests, SDK integration and repository audits, then builds versioned ZIP/TGZ assets plus checksums on Windows/macOS/Linux. From a clean, up-to-date \`main\` checkout, \`helm release --publish --yes\` additionally verifies GitHub CLI authentication, the repository and tag, then uploads the verified files with that version's custom release notes. This command does **not require GitHub Actions or a paid hosted runner**. See [release procedure](docs/RELEASING.md).

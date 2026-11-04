@@ -30,7 +30,7 @@ console.log(`Self-test OK: the server starts and lists ${tools} tools (${server}
 
 // 2. register with each tool
 const targets = [];
-if (host === 'all' || host === 'claude') targets.push({ name: 'Claude Code', cmd: 'claude', args: ['mcp', 'add', '--scope', scope, NAME, '--', 'node', server], remove: ['mcp', 'remove', NAME, '--scope', scope] });
+if (host === 'all' || host === 'claude') targets.push({ name: 'Claude Code', cmd: 'claude', args: ['mcp', 'add', '--scope', scope, NAME, '--', process.execPath, server], remove: ['mcp', 'remove', NAME, '--scope', scope] });
 if (host === 'all' || host === 'codex') targets.push({ name: 'Codex (CLI, desktop app and IDE extension share this)', cmd: 'codex', args: ['mcp', 'add', NAME, '--', 'node', server], remove: ['mcp', 'remove', NAME] });
 let failed = false;
 for (const x of targets) {

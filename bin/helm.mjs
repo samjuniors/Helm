@@ -2,6 +2,7 @@
 // helm command line: set up a project, print MCP configuration for your tool, and run the founder-only commands.
 import path from 'node:path';
 import { runSelfUpdate } from '../server/self-update.mjs';
+import { manageProjectMcp } from '../server/project-mcp.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { scanProject, guard, consult, writeState, adoptProject, agreeConsult, writeRules } from '../server/advisor.mjs';
@@ -89,6 +90,12 @@ try {
       const child = spawnSync(process.execPath, [path.join(PLUGIN_ROOT, 'wizard.mjs')], { stdio: 'inherit' });
       process.exit(child.status ?? 1);
     }
+  } else if (cmd === 'doctor' && flags.repair) {
+    if (rest.some(a=>!['--repair','--dry-run','--yes'].includes(a))) die('usage: helm doctor --repair [--dry-run | --yes]');
+    if (!flags['dry-run']&&!flags.yes) die('Review helm doctor --repair --dry-run, then approve using --yes');
+    const args=[path.join(PLUGIN_ROOT,'setup.mjs'),'repair',...(flags['dry-run']?['--dry-run']:[]),...(flags.yes?['--yes']:[])];
+    const r=spawnSync(process.execPath,args,{stdio:'inherit'});
+    process.exit(r.status??1);
   } else if (cmd === 'doctor') {
     if (rest.length && !rest.every((a) => ['--json', '--check'].includes(a))) die('usage: helm doctor [--json] [--check]');
     const { doctorReport, latestStatus } = await import('../wizard.mjs');
@@ -105,6 +112,17 @@ try {
       if (report.release) console.log('Latest release: ' + (report.release.latest || report.release.message || report.release.status));
       console.log('No files or registrations changed.');
     }
+  } else if (cmd === 'connect' || cmd === 'disconnect' || ((cmd === 'install' || cmd === 'uninstall') && flags.scope === 'project')) {
+    if (rest.some(a=>a.startsWith('--')&&!['--host','--scope','--path','--dry-run','--yes'].includes(a))) die('Project MCP options: --host all|claude|codex --path DIRECTORY --dry-run --yes');
+    if (flags.scope && flags.scope !== 'project') die('Project MCP commands accept --scope project only');
+    if (!flags['dry-run'] && !flags.yes) die('Preview the project registration with --dry-run, then add --yes to apply');
+    const result=manageProjectMcp({projectDir:flags.path||process.cwd(),
+      action:(cmd==='disconnect'||cmd==='uninstall')?'uninstall':'install',
+      host:flags.host||'all',dryRun:Boolean(flags['dry-run']),serverPath:server,nodePath:process.execPath});
+    console.log((result.dryRun?'Project preview (no changes):':'Project MCP configuration updated:')+' '+result.project);
+    for(const r of result.changes)console.log('  '+r.target+': '+(r.changed?(result.dryRun?'would change':'changed'):'already correct/absent')+' '+r.file);
+    for(const file of result.backups||[])console.log('  Backup: '+file);
+    console.log('Global MCP config was not changed. Codex project config loads only after the project is trusted. Restart the chosen client.');
   } else if (cmd === 'install' || cmd === 'uninstall') {
     const valid = cmd === 'install'
       ? new Set(['--dry-run', '--host', '--scope', '--dir', '--in-place', '--force', '--no-path', '--yes'])
@@ -115,6 +133,9 @@ try {
     process.exit(r.status ?? 1);
   } else if (cmd === 'update') {
     await runSelfUpdate({ args: rest, pluginRoot: PLUGIN_ROOT });
+  } else if (cmd === 'release') {
+    const r=spawnSync(process.execPath,[path.join(PLUGIN_ROOT,'scripts','release-local.mjs'),...rest],{stdio:'inherit'});
+    process.exit(r.status??1);
   } else if (cmd === 'download') {
     const r = spawnSync(process.execPath, [path.join(PLUGIN_ROOT, 'download.mjs'), ...rest], { stdio: 'inherit' });
     process.exit(r.status ?? 1);
@@ -126,7 +147,10 @@ try {
     const r = spawnSync(process.execPath, [path.join(kitDirOf(path.resolve(p)), 'kit.mjs'), 'recover', '--hook'], { cwd: p, encoding: 'utf8' });
     console.log((r.stdout || r.stderr || '').trim());
   } else if (!cmd || cmd === 'help' || cmd === '--help') {
-    console.log(`helm\n  init [dir] --name NAME --brief TEXT   create the kit in a project\n  print-config [--host claude|codex|vscode|cursor]   MCP config for your tool\n  upgrade-project [--path P] [--force]   bring a project's copy of the engine up to this plugin version (keeps your records)\n  scan [folder]   read-only look at any project, with or without the kit (--write-config saves suggested checks when the kit is present)\n  guard baseline|check|status [--path P] [--only web,api] [--checks "cmd1,cmd2"]   record, then re-run the project's checks; non-zero exit on a regression\n  consult list|show [id]   read the records your agent kept; consult agree [id] --quote \"...\" records YOUR agreement (agents cannot)\n  adopt [folder] [--name N] [--brief B]   bring an existing or half-built project under the kit on branch kit/integration; never edits your code\n  rules [folder] [--commit]   add or refresh the helm rules block in AGENTS.md (init and adopt do this for you)\n  state [show] [folder]   write docs/STATE.md: parts (frontend, backend, ...), checks, last guard, roadmap\n  version | download [--version X.Y.Z]\n  install [--dry-run] [--host all|claude|codex]   install a managed Helm copy\n  uninstall [--dry-run] [--yes] [--purge]   safely remove only the recorded managed copy\n  update [--check | --dry-run]   securely update a managed Helm installation from GitHub Releases\n  watch [--once] [--interval 2]   live view: where you are, helper runs and their logs\n  runs | approve <runId> | cancel <runId>   helper agent runs (approve is founder-only)\n  ack <KEY> --quote "..." | decide <ID> --quote "..." | milestone close <M> --quote "..."   founder-only, run in a terminal\n  anything else is passed to the project's kit.mjs (continue, recover, status, ...)`);
+    console.log(`helm\n  init [dir] --name NAME --brief TEXT   create the kit in a project\n  print-config [--host claude|codex|vscode|cursor]   MCP config for your tool\n  upgrade-project [--path P] [--force]   bring a project's copy of the engine up to this plugin version (keeps your records)\n  scan [folder]   read-only look at any project, with or without the kit (--write-config saves suggested checks when the kit is present)\n  guard baseline|check|status [--path P] [--only web,api] [--checks "cmd1,cmd2"]   record, then re-run the project's checks; non-zero exit on a regression\n  consult list|show [id]   read the records your agent kept; consult agree [id] --quote \"...\" records YOUR agreement (agents cannot)\n  adopt [folder] [--name N] [--brief B]   bring an existing or half-built project under the kit on branch kit/integration; never edits your code\n  rules [folder] [--commit]   add or refresh the helm rules block in AGENTS.md (init and adopt do this for you)\n  state [show] [folder]   write docs/STATE.md: parts (frontend, backend, ...), checks, last guard, roadmap\n  version | download [--version X.Y.Z]
+  release [--dry-run | --publish --yes]   test, build, verify and optionally publish a local GitHub Release
+  connect|disconnect [--scope project] [--host all|claude|codex] [--path DIR] [--dry-run | --yes]   manage only project MCP registrations
+  doctor --repair [--dry-run | --yes]   fix Helm launcher and persistent user PATH without touching provider credentials\n  install [--dry-run] [--host all|claude|codex]   install a managed Helm copy\n  uninstall [--dry-run] [--yes] [--purge]   safely remove only the recorded managed copy\n  update [--check | --dry-run]   securely update a managed Helm installation from GitHub Releases\n  watch [--once] [--interval 2]   live view: where you are, helper runs and their logs\n  runs | approve <runId> | cancel <runId>   helper agent runs (approve is founder-only)\n  ack <KEY> --quote "..." | decide <ID> --quote "..." | milestone close <M> --quote "..."   founder-only, run in a terminal\n  anything else is passed to the project's kit.mjs (continue, recover, status, ...)`);
   } else {
     const p = project();
     const r = spawnSync(process.execPath, [path.join(kitDirOf(p), 'kit.mjs'), cmd, ...rest], { cwd: p, stdio: 'inherit' });

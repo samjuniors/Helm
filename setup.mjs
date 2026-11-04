@@ -14,6 +14,7 @@ import readline from 'node:readline/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { changeWindowsUserPath } from './server/user-path.mjs';
+import { managePosixPath } from './server/path-repair.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -27,6 +28,7 @@ const run = (c, args) => (win ? spawnSync([c, ...args.map(q)].join(' '), { shell
 const has = (c) => { const r = run(c, ['--version']); return !r.error && r.status === 0; };
 const dry = flag('dry-run');
 const manageWindowsPath = win && !flag('no-path');
+const manageShellPath = !win && !flag('no-path');
 
 // the name this build answers to is the name of its bin file (rename.mjs keeps that in step)
 const bins = fs.existsSync(path.join(here, 'bin')) ? fs.readdirSync(path.join(here, 'bin')).filter((f) => f.endsWith('.mjs')) : [];
@@ -54,8 +56,8 @@ function writeShims(dir) {
   for (const file of shimFiles()) {
     if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('HELM-MANAGED-LAUNCHER')) die(`refusing to overwrite an existing non-Helm launcher: ${file}`);
   }
-  if (win) fs.writeFileSync(path.join(BIN_DIR, `${NAME}.cmd`), `@echo off\r\nrem HELM-MANAGED-LAUNCHER\r\nset "HELM_CMD_SHIM=%~f0"\r\nnode "${js}" %*\r\nset "HELM_EXIT=%errorlevel%"\r\nif not "%HELM_EXIT%"=="0" exit /b %HELM_EXIT%\r\nif /i not "%~1"=="uninstall" exit /b 0\r\nif /i "%~2"=="--dry-run" exit /b 0\r\nif /i "%~3"=="--dry-run" exit /b 0\r\nif /i "%~4"=="--dry-run" exit /b 0\r\nif exist "${STATE}" exit /b 0\r\n(goto) 2>nul & del "%~f0" >nul\r\n`);
-  else { const f = path.join(BIN_DIR, NAME); fs.writeFileSync(f, `#!/bin/sh\n# HELM-MANAGED-LAUNCHER\nexec node "${js}" "$@"\n`); fs.chmodSync(f, 0o755); }
+  if (win) fs.writeFileSync(path.join(BIN_DIR, `${NAME}.cmd`), `@echo off\r\nrem HELM-MANAGED-LAUNCHER\r\nset "HELM_CMD_SHIM=%~f0"\r\n"${process.execPath}" "${js}" %*\r\nset "HELM_EXIT=%errorlevel%"\r\nif not "%HELM_EXIT%"=="0" exit /b %HELM_EXIT%\r\nif /i not "%~1"=="uninstall" exit /b 0\r\nif /i "%~2"=="--dry-run" exit /b 0\r\nif /i "%~3"=="--dry-run" exit /b 0\r\nif /i "%~4"=="--dry-run" exit /b 0\r\nif exist "${STATE}" exit /b 0\r\n(goto) 2>nul & del "%~f0" >nul\r\n`);
+  else { const f = path.join(BIN_DIR, NAME); fs.writeFileSync(f, `#!/bin/sh\n# HELM-MANAGED-LAUNCHER\nexec "${process.execPath}" "${js}" "$@"\n`); fs.chmodSync(f, 0o755); }
 }
 const onPath = () => (process.env.PATH ?? '').split(path.delimiter).some((p) => path.resolve(p) === path.resolve(BIN_DIR));
 function pathHelp() {
@@ -66,6 +68,7 @@ function pathHelp() {
 }
 
 function install() {
+  if (opt('scope', 'user') !== 'user') die('Global managed setup uses --scope user only. For project MCP use: helm connect --path <project> --host all --dry-run, then --yes. A project connection never changes global registrations.');
   if (Number(process.versions.node.split('.')[0]) < 18) die('Node 18 or newer is required (check: node -v).');
   if (!has('git')) console.log('Note: git was not found. The kit needs git in your projects (https://git-scm.com).');
   const cur = readState();
@@ -99,6 +102,13 @@ function install() {
           console.log(`Added ${BIN_DIR} to Windows user PATH. Open a new PowerShell terminal.`);
         }
       } catch (e) { console.warn(`Could not update Windows user PATH: ${e.message}\n${pathHelp()}`); }
+    }
+    if (manageShellPath && !dry && !cur.inPlace) {
+      try {
+        const result=managePosixPath({action:'add'});
+        writeState({ ...readState(), hosts:[...new Set([...owned,...added])], pathProfiles:[...new Set([...(cur.pathProfiles||[]),result.profile])] });
+        console.log(result.changed ? 'Persistently added Helm launcher to '+result.profile+' (restart your shell).' : 'Helm PATH section already present in '+result.profile+'.');
+      } catch(e){ console.warn('Could not repair user shell PATH: '+e.message+'\n'+pathHelp()); }
     }
     if (!dry && added.length) writeState({ ...readState(), hosts: [...new Set([...owned, ...added])], configuredAt: new Date().toISOString() });
     if (dry) console.log('  Preview only. Nothing was changed.');
@@ -137,6 +147,13 @@ function install() {
       if (added.changed) writeState({ ...newState, pathManaged: true });
       console.log(added.changed ? `Added ${BIN_DIR} to Windows user PATH; open a new terminal to use ${NAME}.` : `Windows user PATH already contains ${BIN_DIR}.`);
     } catch (e) { console.warn(`Unable to update Windows user PATH automatically: ${e.message}\n${pathHelp()}`); }
+  }
+  if (manageShellPath && !inPlace) {
+    try {
+      const result=managePosixPath({action:'add'});
+      writeState({ ...readState(), pathProfiles:[result.profile] });
+      console.log(result.changed ? 'Persistently added Helm PATH to '+result.profile+' (restart your terminal).' : 'Helm PATH already managed in '+result.profile+'.');
+    } catch(e){ console.warn('Unable to repair user shell PATH: '+e.message+'\n'+pathHelp()); }
   }
   console.log(`\nInstalled ${NAME} ${meta(target).version}.\nNext:\n 1. Restart Claude Code / Codex so they load it. Check in Codex: codex mcp list\n 2. ${pathHelp()}\n 3. In a project: ${NAME} init . --name "My App" --brief "..."   (new product)   or   ${NAME} adopt .   (existing project, clean git tree)\n 4. For future releases: run helm update --check, helm update --dry-run, then helm update. Antigravity is wired per project by init/adopt.`);
 }
@@ -197,6 +214,14 @@ async function uninstall() {
       if (removed.changed) console.log(`Removed Helm's PATH entry from Windows user PATH; reopen your terminal.`);
     } catch (e) { console.warn(`Could not remove Helm's user PATH entry automatically: ${e.message}\nYou can remove ${BIN_DIR} manually from your user PATH.`); }
   }
+  if (!win && Array.isArray(cur.pathProfiles)) {
+    for(const profile of cur.pathProfiles) {
+      try {
+        const result=managePosixPath({profile,action:'remove'});
+        if(result.changed)console.log('Removed only Helm-owned PATH lines from '+profile+'. Shell restart required.');
+      } catch(e){console.warn('Preserved customized PATH configuration: '+e.message);}
+    }
+  }
   fs.rmSync(STATE, { force: true });
   try { fs.rmdirSync(BIN_DIR); } catch { /* not empty or gone */ }
   if (flag('purge') && path.basename(HOME) === `.${NAME}` && path.dirname(HOME) === os.homedir()) {
@@ -207,8 +232,45 @@ async function uninstall() {
       fs.rmSync(backup, { recursive: true, force: true });
     }
   }
+  if (flag('purge')) {
+    // Only files written by Helm's profile/project configuration backup helpers.
+    const snapshots=path.join(HOME,'backups');
+    if(fs.existsSync(snapshots) && fs.lstatSync(snapshots).isDirectory() && !fs.lstatSync(snapshots).isSymbolicLink()){
+      for(const name of fs.readdirSync(snapshots)){
+        if(!/^(?:[a-f0-9]{12}|\.(?:bashrc|zshrc|profile)|helm\.fish)-\d{13}-[a-f0-9]{8}\.bak$/.test(name))continue;
+        const file=path.join(snapshots,name);
+        if(fs.lstatSync(file).isFile())fs.rmSync(file,{force:true});
+      }
+      try{fs.rmdirSync(snapshots);}catch{ /* preserve unknown user files */ }
+    }
+  }
   try { fs.rmdirSync(HOME); } catch { console.log(`Kept ${HOME} (backups or other files remain).`); }
   console.log(`\nUninstalled. Restart Claude Code and Codex. Antigravity: a project's .agents/mcp_config.json still lists the server; delete that entry (or run: ${NAME} adapt) if you want it gone. Remove ${BIN_DIR} from your PATH if you added it.`);
+}
+
+function repair(){
+  const cur=readState();
+  if(!cur||!isOurs(cur.dir))die('No valid managed Helm installation found. Run helm install first.');
+  const launcher=shimFiles()[0],exists=fs.existsSync(launcher),managed=!exists||fs.readFileSync(launcher,'utf8').includes('HELM-MANAGED-LAUNCHER');
+  if(!managed)die('Custom launcher exists; refusing to replace: '+launcher);
+  console.log((dry?'[dry run] ':'')+'Repair Helm launcher and persistent user PATH; global MCP registrations and projects stay untouched.');
+  if(dry){if(!win&&!cur.inPlace)console.log('Shell profile: '+managePosixPath({action:'add',dryRun:true}).profile);return;}
+  if(!flag('yes'))die('Repair changes your user PATH and launcher. Review helm doctor --repair --dry-run, then run helm doctor --repair --yes.');
+  writeShims(cur.dir);
+  if(!cur.inPlace){
+    try{
+      if(win){
+        const result=changeWindowsUserPath(BIN_DIR,'add');
+        writeState({...cur,pathManaged:cur.pathManaged===true||result.changed,repairedAt:new Date().toISOString()});
+        console.log(result.changed?'Windows user PATH fixed. Open a new terminal.':'Windows user PATH already correct.');
+      }else{
+        const result=managePosixPath({action:'add'});
+        writeState({...cur,pathProfiles:[...new Set([...(cur.pathProfiles||[]),result.profile])],repairedAt:new Date().toISOString()});
+        console.log(result.changed?'Shell PATH fixed in '+result.profile+'. Open a new terminal.':'Shell PATH already configured in '+result.profile+'.');
+      }
+    }catch(e){console.warn('PATH repair could not complete: '+e.message+'\n'+pathHelp());process.exitCode=1;}
+  }
+  console.log('Launcher verified: '+launcher+'. No provider tokens or unrelated settings were changed.');
 }
 
 function status() {
@@ -226,11 +288,12 @@ async function menu() {
   await runWizard();
 }
 
-const help = () => console.log(`${NAME} setup\n  node setup.mjs install | update | uninstall | status | wizard (no argument: guided wizard)\n  --host all|claude|codex|none  --scope user|project|local  --dir <folder>  --in-place\n  --dry-run  --force  --yes  --purge  --no-path (Windows: do not modify user PATH)\nWindows: double-click setup.cmd. Mac/Linux: ./setup.sh`);
+const help = () => console.log(`${NAME} setup\n  node setup.mjs install | update | uninstall | repair | status | wizard (no argument: guided wizard)\n  --host all|claude|codex|none  --scope user|project|local  --dir <folder>  --in-place\n  --dry-run  --force  --yes  --purge  --no-path (Windows: do not modify user PATH)\nWindows: double-click setup.cmd. Mac/Linux: ./setup.sh`);
 if (flag('help') || cmd === 'help') help();
 else if (cmd === 'install') install();
 else if (cmd === 'update') update();
 else if (cmd === 'uninstall') await uninstall();
 else if (cmd === 'status') status();
+else if (cmd === 'repair') repair();
 else if (cmd === 'wizard' || (!cmd && process.stdin.isTTY)) await menu();
 else help();

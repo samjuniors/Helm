@@ -1064,14 +1064,14 @@ const cmds = {
       else { writeFileSync(agentsMd, t.replace(/\s*$/, '\n\n') + block); did.push('added the product-kit block to AGENTS.md'); }
     }
     const importLine = (file, line, title) => { const f = path.join(root, file); if (!existsSync(f)) { writeFileSync(f, `${line}\n`); did.push(`created ${file} (imports AGENTS.md)`); } else if (!readFileSync(f, 'utf8').includes(line)) { writeFileSync(f, readFileSync(f, 'utf8').replace(/\s*$/, '\n') + `${line}\n`); did.push(`${title}: appended the AGENTS.md import to ${file}`); } };
-    const mcpJson = (file, key = 'mcpServers') => { if (!mcp) return; const f = path.join(root, file); let j = {}; if (existsSync(f)) { try { j = JSON.parse(readFileSync(f, 'utf8')); } catch { die(`${file} is not valid JSON; fix it first. Nothing was changed there.`); } } j[key] ??= {}; if (!j[key][serverName]) { j[key][serverName] = { command: 'node', args: [mcp] }; mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, JSON.stringify(j, null, 2) + '\n'); did.push(`registered the MCP server in ${file}`); } };
+    const mcpJson = (file, key = 'mcpServers') => { if (!mcp) return; const f = path.join(root, file); let j = {}; if (existsSync(f)) { try { j = JSON.parse(readFileSync(f, 'utf8')); } catch { die(`${file} is not valid JSON; fix it first. Nothing was changed there.`); } } j[key] ??= {}; if (!j[key][serverName]) { j[key][serverName] = { command: process.execPath, args: [mcp] }; mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, JSON.stringify(j, null, 2) + '\n'); did.push(`registered the MCP server in ${file}`); } };
     if (host === 'all' || host === 'claude') {
       importLine('CLAUDE.md', '@AGENTS.md', 'Claude Code reads CLAUDE.md, not AGENTS.md');
       mcpJson('.mcp.json');
       cmds['install-hook']();
     }
     if (host === 'all' || host === 'codex') {
-      if (mcp) { const f = path.join(root, '.codex', 'config.toml'); const t = existsSync(f) ? readFileSync(f, 'utf8') : ''; if (!t.includes(`[mcp_servers.${serverName}]`)) { mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, t.replace(/\s*$/, t ? '\n\n' : '') + `[mcp_servers.${serverName}]\ncommand = "node"\nargs = [${JSON.stringify(mcp)}]\n`); did.push('registered the MCP server in .codex/config.toml (Codex loads it only for trusted projects)'); } }
+      if (mcp) { const f = path.join(root, '.codex', 'config.toml'); const t = existsSync(f) ? readFileSync(f, 'utf8') : ''; if (!t.includes(`[mcp_servers.${serverName}]`)) { mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, t.replace(/\s*$/, t ? '\n\n' : '') + `[mcp_servers.${serverName}]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(mcp)}]\n`); did.push('registered the MCP server in .codex/config.toml (Codex loads it only for trusted projects)'); } }
       else did.push('Codex: nothing to write; it reads AGENTS.md. Add --mcp <path to mcp.mjs> to register the MCP tools');
     }
     if (host === 'all' || host === 'antigravity') {

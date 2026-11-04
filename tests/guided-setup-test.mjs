@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { discoverClients, parseClientSelection, selectedHostFlag } from '../server/setup-discovery.mjs';
 import { latestStatus } from '../wizard.mjs';
@@ -61,11 +61,11 @@ try{
   assert.throws(()=>parseClientSelection('antigravity',discovered),/guided manual/);
   pass('wizard selection is explicit; manual-only IDEs never get auto-registered');
   const latest=await latestStatus('0.9.1',async()=>({
-    ok:true,json:async()=>({tag_name:'v0.10.0',draft:false,prerelease:false}),
+    ok:true,json:async()=>({tag_name:'v0.11.0',draft:false,prerelease:false}),
   }));
   assert.equal(latest.status,'available');
-  const current=await latestStatus('0.10.0',async()=>({
-    ok:true,json:async()=>({tag_name:'v0.10.0',draft:false,prerelease:false}),
+  const current=await latestStatus('0.11.0',async()=>({
+    ok:true,json:async()=>({tag_name:'v0.11.0',draft:false,prerelease:false}),
   }));
   assert.equal(current.status,'current');
   const offline=await latestStatus('0.9.1',async()=>{throw Error('offline');});
@@ -113,7 +113,20 @@ try{
   pass('guided wizard refuses non-interactive execution with clear CLI alternative');
   if (process.platform === 'linux' && spawnSync('which',['script'],{encoding:'utf8'}).status===0) {
     const cmd=JSON.stringify(process.execPath)+' '+JSON.stringify(path.join(root,'wizard.mjs'));
-    const tty=spawnSync('script',['-q','-e','-c',cmd,'/dev/null'],{input:'q\n',env,cwd:temp,encoding:'utf8',timeout:12000});
+    // Send input only after the real prompt appears. Sending "q" before the
+    // pseudo-terminal starts can lose it and make Node 18 wait until timeout.
+    const tty=await new Promise((resolve,reject)=>{
+      const child=spawn('script',['-q','-e','-c',cmd,'/dev/null'],{env,cwd:temp,stdio:'pipe'});
+      let stdout='',stderr='',sent=false;
+      const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('wizard pseudo-terminal timeout: '+stdout));},15000);
+      child.stdout.on('data',chunk=>{
+        stdout+=chunk.toString('utf8');
+        if(!sent&&stdout.includes('Choose [1-7 or q]')){sent=true;child.stdin.write('q\n');child.stdin.end();}
+      });
+      child.stderr.on('data',chunk=>{stderr+=chunk.toString('utf8');});
+      child.on('error',error=>{clearTimeout(timeout);reject(error);});
+      child.on('close',status=>{clearTimeout(timeout);resolve({status,stdout,stderr});});
+    });
     assert.equal(tty.status,0,'pseudo-terminal wizard quit: '+out(tty));
     assert.match(out(tty),/Helm\s+·\s+Setup & Integration Manager/);
     pass('Linux pseudo-terminal wizard opens, renders setup menu and exits without writes');
