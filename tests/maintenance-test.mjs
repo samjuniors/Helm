@@ -35,6 +35,12 @@ try {
   assert.equal(registerProjectCodex(project,server,process.execPath).status,'already-managed');pass('project Codex config is owned and idempotent');
   unregisterProjectCodex(project);assert.equal(projectCodexStatus(project).status,'absent');
   assert.match(fs.readFileSync(config,'utf8'),/model = "keep"/);pass('project uninstall removes only managed Codex section');
+  registerProjectCodex(project,server,process.execPath);
+  fs.appendFileSync(config,'env = { CUSTOM = "keep" }\n');
+  const customBefore=fs.readFileSync(config,'utf8');
+  assert.throws(()=>unregisterProjectCodex(project),/customized/);
+  assert.equal(fs.readFileSync(config,'utf8'),customBefore);
+  pass('customized Helm-managed project MCP is refused without losing custom environment data');
   fs.writeFileSync(config,'[mcp_servers.helm]\ncommand = "custom"\n');
   assert.throws(()=>registerProjectCodex(project,server),/will not overwrite/);
   assert.throws(()=>unregisterProjectCodex(project),/not Helm-managed/);pass('foreign project MCP configuration cannot be overwritten or removed');

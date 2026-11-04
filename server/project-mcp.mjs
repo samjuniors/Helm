@@ -37,6 +37,20 @@ export function unregisterProjectCodex(projectDir, name = 'helm', {dryRun = fals
   const after=at+needle.length;
   let end=text.indexOf('\n[',after);
   if(end<0)end=text.length;
+  // A Helm marker is not permission to destroy user changes inside the block.
+  // We own exactly command and a single args entry; reject other keys or values.
+  const rows=text.slice(after,end).trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  let valid=false;
+  if(rows.length===2 && rows[0].startsWith('command = ') && rows[1].startsWith('args = ')){
+    try{
+      const command=JSON.parse(rows[0].slice('command = '.length));
+      const args=JSON.parse(rows[1].slice('args = '.length));
+      valid=typeof command==='string'&&path.isAbsolute(command)&&
+        Array.isArray(args)&&args.length===1&&typeof args[0]==='string'&&
+        path.isAbsolute(args[0])&&args[0].replaceAll('\\','/').endsWith('/server/mcp.mjs');
+    }catch{valid=false;}
+  }
+  if(!valid)throw new Error('Helm-managed Codex block was customized; refusing to remove custom project settings');
   if(dryRun)return {status:'would-unregister',file};
   const next=text.slice(0,at)+text.slice(end===text.length?end:end+1);
   fs.writeFileSync(file,next.replace(/^\n/,''));
