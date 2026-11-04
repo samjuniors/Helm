@@ -1,5 +1,13 @@
 # Helm Changelog
 
+## 0.11.0
+- Add offline-capable \`helm release\` packaging and a guarded \`helm release --publish --yes\` path through the GitHub CLI, independent of hosted GitHub Actions; verify SHA-256 before uploading.
+- Replace the external \`zip\` binary dependency with a portable Node ZIP writer so Windows, macOS and Linux can build the same release assets.
+- Add \`helm doctor --repair --dry-run\` and \`--yes\` to repair only Helm-owned launchers and persistent user PATH. Existing Windows user PATH is preserved; POSIX Bash, Zsh and Fish profiles get isolated, idempotent managed blocks with backups.
+- Add project-only \`helm connect\` and \`helm disconnect\` (\`--scope project\`) for Claude Code and Codex, without modifying global registrations. Refuse custom registrations and retain unrelated MCP settings; use an absolute Node executable path.
+- Improve guided installation PATH onboarding, separate global managed installation from scoped project wiring, and add regression checks for PATH repair, multi-project config safety and Windows/Linux ZIP building.
+- No migration of existing \`.agents/product-kit/\` project state or MCP tool names.
+
 ## 0.10.0
 - Add a lightweight guided installer wizard available from the normal setup launchers and `helm setup`. Show detected coding environments, choose supported clients and installation folder, preview exact planned actions, and confirm explicitly before writing.
 - Add advanced read-only `helm doctor [--json] [--check]` and `helm setup --json`; keep explicit `helm install --host ... --dir ... --dry-run` scripting for PowerShell, CMD and Unix.

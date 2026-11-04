@@ -40,11 +40,16 @@ Bootstrap scripts must be included in both release archives, tested on their tar
 
 After the PR is reviewed and merged, verify the intended `main` commit and a clean checkout. The release tag **must point to that exact commit**. Build artifacts from the same source, not from an earlier uploaded ZIP, temporary prototype, or mismatched working tree.
 
-The existing package builder uses the external `zip` command. Run it in a supported environment with `node`, `npm` and `zip` available (for example Linux or a suitable Unix shell). Standard Windows PowerShell may not have `zip` installed; do **not** claim `npm run pack:release` works there without checking.
+The v0.11+ package builder uses Node's built-in compression library for ZIP files; no external \`zip\` command is needed on Windows, macOS or Linux. Run:
 
 ~~~sh
-npm run pack:release
+helm release --dry-run
+helm release
 ~~~
+
+The local release command runs \`npm run check\`, \`npm test\`, \`npm run test:integration\`, and \`npm run pack:release\` in order. It verifies the generated ZIP/TGZ SHA-256 hashes. A failing or unexecuted test stops publication. The packaging command replaces the ignored \`dist\` output, so move any unrelated local files before building.
+
+
 
 Verify the generated `dist/helm-vX.Y.Z.zip`, `dist/helm-vX.Y.Z.tgz` and `dist/SHA256SUMS`. Check the listed hashes and inspect the ZIP/TGZ entries, including dotfiles. Extract a fresh ZIP to a temporary directory and run `npm run check`, `node install.mjs --dry-run` and `node setup.mjs install --dry-run`; test actual upgrade behavior on disposable installations.
 
@@ -52,20 +57,17 @@ The builder currently replaces the ignored `dist` output folder. Make sure it co
 
 ## Publish with custom notes
 
-From the verified source, with an authenticated GitHub CLI and no existing tag:
+After review and merge, start from the exact, clean and up-to-date \`main\` checkout with \`gh auth login\` complete. You can publish without hosted runners:
 
 ~~~sh
-VERSION=$(node -p "require('./package.json').version")
-TAG="v$VERSION"
-test -s "docs/releases/$TAG.md"
-git tag "$TAG"
-git push origin "$TAG"
-gh release create "$TAG" \
-  "dist/helm-$TAG.zip" "dist/helm-$TAG.tgz" dist/SHA256SUMS \
-  --verify-tag --title "Helm $TAG" --notes-file "docs/releases/$TAG.md"
+helm release --dry-run
+helm release
+helm release --publish --yes
 ~~~
 
-The Bash example requires a shell with those commands; adjust variable syntax for PowerShell. Publishing the release through the GitHub website with the same verified files and custom notes is also supported.
+The publish step refuses a dirty checkout, wrong GitHub repository, wrong branch, stale remote \`main\`, conflicting release/tag, missing notes, failed tests or checksum mismatch. It creates the versioned tag only after validation and preserves it if an upload fails; never silently overwrite a tag. The GitHub CLI can use a locally authenticated account or a secure \`GH_TOKEN\` in CI.
+
+The three Helm commands above work in PowerShell, CMD and POSIX shells. Publishing through GitHub's Releases page with the same locally verified files and custom notes also remains an option.
 
 If tagging succeeds but asset upload fails, **do not retag or create an unrelated release**. Investigate the existing tag/release state and upload the missing verified assets to that same release.
 
@@ -80,6 +82,6 @@ If tagging succeeds but asset upload fails, **do not retag or create an unrelate
 
 ## Automated workflow
 
-`.github/workflows/release.yml` can publish automatically **only after its CI test jobs actually pass**. It must require `docs/releases/vX.Y.Z.md`, not substitute the entire changelog for custom release notes. Until the cross-platform failures in issue #2 are fixed, use verified local checks and accurately disclose CI limitations.
+`.github/workflows/release.yml` can publish automatically **only after its CI test jobs actually pass**. It must require `docs/releases/vX.Y.Z.md`, not substitute the entire changelog for custom release notes. If Actions is disabled by an account billing or runner problem, use verified local checks and accurately disclose which host validations were not executed.
 
 The approved manual fallback does **not** mean failed test cases may be ignored. Differentiate unrun host coverage from known failing tests in release notes and issues.

@@ -25,8 +25,9 @@ jobs:
       - run: npm install --prefix tests --no-audit --no-fund
       - run: node tests/e2e.mjs
       - name: Package smoke test
-        if: runner.os == 'Linux'
         run: npm pack --dry-run --ignore-scripts
+      - name: Build and verify portable release ZIP/TGZ on this OS
+        run: npm run pack:release
   release:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
