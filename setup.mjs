@@ -261,7 +261,7 @@ function repair(){
     try{
       if(win){
         const result=changeWindowsUserPath(BIN_DIR,'add');
-        writeState({...cur,pathManaged:true,repairedAt:new Date().toISOString()});
+        writeState({...cur,pathManaged:cur.pathManaged===true||result.changed,repairedAt:new Date().toISOString()});
         console.log(result.changed?'Windows user PATH fixed. Open a new terminal.':'Windows user PATH already correct.');
       }else{
         const result=managePosixPath({action:'add'});
