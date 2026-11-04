@@ -28,5 +28,20 @@ try {
   fs.writeFileSync(claude,JSON.stringify({mcpServers:{helm:{command:'other',args:[]}}}));
   assert.throws(()=>manageProjectMcp(input),/custom Claude/);
   assert.ok(fs.existsSync(path.join(home,'.helm','backups')));
+  // Existing Helm-generated project adapters used unmarked Codex and "node".
+  const old=path.join(home,'legacy');fs.mkdirSync(old);fs.mkdirSync(path.join(old,'.codex'));
+  fs.writeFileSync(path.join(old,'.mcp.json'),JSON.stringify({mcpServers:{helm:{command:'node',args:[server]}}}));
+  fs.writeFileSync(path.join(old,'.codex','config.toml'),'model = "original"\n\n[mcp_servers.helm]\ncommand = "node"\nargs = ['+JSON.stringify(server)+']\n');
+  const migrated=manageProjectMcp({...input,projectDir:old});
+  assert.equal(migrated.changes.filter(x=>x.changed).length,2);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(old,'.mcp.json'),'utf8')).mcpServers.helm.command,process.execPath);
+  assert.match(fs.readFileSync(path.join(old,'.codex','config.toml'),'utf8'),/Helm project MCP \(managed\)/);
+  manageProjectMcp({...input,projectDir:old,action:'uninstall'});
+  assert.doesNotMatch(fs.readFileSync(path.join(old,'.codex','config.toml'),'utf8'),/mcp_servers\.helm/);
+  assert.match(fs.readFileSync(path.join(old,'.codex','config.toml'),'utf8'),/model = "original"/);
+  const custom=path.join(home,'custom');fs.mkdirSync(path.join(custom,'.codex'),{recursive:true});
+  fs.writeFileSync(path.join(custom,'.codex','config.toml'),'[mcp_servers.helm]\ncommand = "python"\nargs = ["other"]\n');
+  assert.throws(()=>manageProjectMcp({...input,projectDir:custom,host:'codex'}),/custom Codex/);
+
   console.log('Project MCP scoped installation, uninstall, backup and conflict guards: PASS');
 }finally{fs.rmSync(home,{recursive:true,force:true});}

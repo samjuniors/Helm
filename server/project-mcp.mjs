@@ -21,7 +21,7 @@ function atomicWrite(file,value){
   fs.mkdirSync(path.dirname(file),{recursive:true});const temp=file+'.helm-tmp-'+crypto.randomBytes(5).toString('hex');
   try{fs.writeFileSync(temp,value,{mode:fs.existsSync(file)?fs.statSync(file).mode:0o600});fs.renameSync(temp,file);}finally{if(fs.existsSync(temp))fs.rmSync(temp,{force:true});}
 }
-const isManaged=(record,nodePath,serverPath)=>record&&record.command===nodePath&&Array.isArray(record.args)&&record.args.length===1&&record.args[0]===serverPath;
+const isManaged=(record,nodePath,serverPath)=>record&&(record.command===nodePath||record.command==='node')&&Array.isArray(record.args)&&record.args.length===1&&record.args[0]===serverPath&&Object.keys(record).every(k=>['command','args'].includes(k));
 const codexBlock=(nodePath,serverPath)=>START+'\n[mcp_servers.helm]\ncommand = '+JSON.stringify(nodePath)+'\nargs = ['+JSON.stringify(serverPath)+']\n'+END;
 export function manageProjectMcp({projectDir=process.cwd(),action='install',host='all',dryRun=false,serverPath,nodePath=process.execPath,home=os.homedir()}={}){
   if(!['install','uninstall'].includes(action))throw Error('Invalid project MCP action');
@@ -39,20 +39,44 @@ export function manageProjectMcp({projectDir=process.cwd(),action='install',host
       data.mcpServers??={};
       const existing=data.mcpServers.helm;
       if(existing&&!isManaged(existing,nodePath,server))throw Error('Existing custom Claude Helm registration; refusing to overwrite/remove it');
-      if(action==='install'&&!existing)data.mcpServers.helm={command:nodePath,args:[server]};
+      if(action==='install'&&(!existing||existing.command!==nodePath))data.mcpServers.helm={command:nodePath,args:[server]};
       if(action==='uninstall'&&existing){delete data.mcpServers.helm;if(!Object.keys(data.mcpServers).length)delete data.mcpServers;}
       const next=(action==='uninstall'&&!existing)?previous:JSON.stringify(data,null,2)+'\n';
-      const changed=action==='install'?!existing:Boolean(existing);
+      const changed=action==='install'?(!existing||existing.command!==nodePath):Boolean(existing);
       planned.push({target,file,previous,next,changed});
     }else{
       const file=tomlConfig(project),previous=contents(file),content=previous||'',block=codexBlock(nodePath,server);
       const s=content.indexOf(START),e=content.indexOf(END);
       if((s>=0)!==(e>=0))throw Error('Partial Helm Codex markers: review manually');
       if(s>=0&&(content.slice(s,e+END.length)!==block||content.indexOf(START,s+1)>=0||content.indexOf(END,e+1)>=0))throw Error('Customized Helm Codex block: refusing to change it');
-      if(s<0&&/\[\s*mcp_servers\.(?:helm|"helm"|'helm')\s*\]/i.test(content))throw Error('Existing custom Codex Helm registration; refusing to overwrite it');
-      const next=action==='install'?(s>=0?content:content+(content&&!content.endsWith('\n')?'\n':'')+(content?'\n':'')+block+'\n')
-        :(s<0?content:content.slice(0,s)+content.slice(e+END.length).replace(/^\n/,''));
-      planned.push({target,file,previous,next,changed:action==='install'?s<0:s>=0});
+      // "adapt" in older Helm versions created an unmarked Codex block.
+      // Upgrade/remove only an exact, trailing Helm entry for this very server.
+      const legacyForms=['node',nodePath].map(command=>'[mcp_servers.helm]\ncommand = '+JSON.stringify(command)+'\nargs = ['+JSON.stringify(server)+']');
+      let legacyAt=-1;
+      if(s<0){
+        const trimmed=content.trimEnd();
+        for(const entry of legacyForms){
+          if(trimmed.endsWith(entry)){
+            const startAt=trimmed.length-entry.length;
+            if(startAt===0||trimmed[startAt-1]==='\n')legacyAt=startAt;
+          }
+        }
+        if(legacyAt<0&&/\[\s*mcp_servers\.(?:helm|"helm"|'helm')\s*\]/i.test(content))
+          throw Error('Existing custom Codex Helm registration; refusing to overwrite it');
+      }
+      let next,changed=false;
+      if(s>=0){
+        changed=action==='uninstall';
+        next=action==='install'?content:content.slice(0,s)+content.slice(e+END.length).replace(/^\n/,'');
+      }else if(legacyAt>=0){
+        changed=true;
+        const left=content.slice(0,legacyAt).replace(/\s*$/,'');
+        next=action==='install'?(left?left+'\n\n':'')+block+'\n':(left?left+'\n':'');
+      }else{
+        changed=action==='install';
+        next=action==='install'?content+(content&&!content.endsWith('\n')?'\n':'')+(content?'\n':'')+block+'\n':content;
+      }
+      planned.push({target,file,previous,next,changed});
     }
   }
   if(dryRun)return {project,dryRun:true,changes:planned.map(({target,file,changed})=>({target,file,changed}))};
