@@ -232,6 +232,18 @@ async function uninstall() {
       fs.rmSync(backup, { recursive: true, force: true });
     }
   }
+  if (flag('purge')) {
+    // Only files written by Helm's profile/project configuration backup helpers.
+    const snapshots=path.join(HOME,'backups');
+    if(fs.existsSync(snapshots) && fs.lstatSync(snapshots).isDirectory() && !fs.lstatSync(snapshots).isSymbolicLink()){
+      for(const name of fs.readdirSync(snapshots)){
+        if(!/^(?:[a-f0-9]{12}|\.(?:bashrc|zshrc|profile)|helm\.fish)-\d{13}-[a-f0-9]{8}\.bak$/.test(name))continue;
+        const file=path.join(snapshots,name);
+        if(fs.lstatSync(file).isFile())fs.rmSync(file,{force:true});
+      }
+      try{fs.rmdirSync(snapshots);}catch{ /* preserve unknown user files */ }
+    }
+  }
   try { fs.rmdirSync(HOME); } catch { console.log(`Kept ${HOME} (backups or other files remain).`); }
   console.log(`\nUninstalled. Restart Claude Code and Codex. Antigravity: a project's .agents/mcp_config.json still lists the server; delete that entry (or run: ${NAME} adapt) if you want it gone. Remove ${BIN_DIR} from your PATH if you added it.`);
 }

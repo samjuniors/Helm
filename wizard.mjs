@@ -17,7 +17,13 @@ const defaultDir=path.join(home,'.helm','plugin');
 const log=(s='')=>console.log(s);
 const call=(args)=>spawnSync(process.execPath,[setupFile,...args],{stdio:'inherit'}).status??1;
 const ask=async (rl,prompt,fallback='')=>{
-  const answer=(await rl.question(prompt)).trim();
+  let answer;
+  try{answer=(await rl.question(prompt)).trim();}
+  catch(e){
+    if(e?.code==='ERR_USE_AFTER_CLOSE'||e?.code==='ABORT_ERR'||/Aborted with Ctrl\+D/.test(e?.message||''))
+      throw Object.assign(new Error('Cancelled'),{cancelled:true});
+    throw e;
+  }
   if(['q','quit','exit'].includes(answer.toLowerCase()))throw Object.assign(new Error('Cancelled'),{cancelled:true});
   return answer||fallback;
 };
