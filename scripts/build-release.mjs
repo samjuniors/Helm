@@ -1,11 +1,36 @@
 #!/usr/bin/env node
-import fs from'node:fs';import os from'node:os';import path from'node:path';import crypto from'node:crypto';import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';
+// Cross-platform, offline-capable release packaging using the verified npm file list.
+// A pure Node ZIP writer avoids dependency on the external zip/PowerShell commands.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {createReleaseZip} from './zip-release.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const version=JSON.parse(fs.readFileSync(path.join(root,'package.json'))).version,tag='v'+version,out=path.join(root,'dist');
-function run(cmd,args,cwd=root,pipe=false){const r=spawnSync(cmd,args,{cwd,encoding:'utf8',stdio:pipe?['ignore','pipe','inherit']:'inherit'});if(r.status!==0)throw Error(cmd+' failed '+r.status);return r.stdout}
-fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out);run(process.execPath,['scripts/check-release.mjs']);
+const version=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version,tag='v'+version,out=path.join(root,'dist');
+function run(command,args,{capture=false}={}){
+  // npm_execpath is populated by npm run and works on Windows without shell quoting.
+  const npmCli=process.env.npm_execpath&&process.env.npm_execpath.endsWith('.js')?process.env.npm_execpath:null;
+  const cmd=command==='npm'&&npmCli?process.execPath:command==='npm'&&process.platform==='win32'?'npm.cmd':command;
+  const argv=command==='npm'&&npmCli?[npmCli,...args]:args;
+  const r=spawnSync(cmd,argv,{cwd:root,encoding:'utf8',stdio:capture?['ignore','pipe','inherit']:'inherit',shell:command==='npm'&&!npmCli&&process.platform==='win32'});
+  if(r.error||r.status!==0)throw Error(command+' failed: '+String(r.stderr||r.error||r.status));
+  return r.stdout||'';
+}
+run(process.execPath,['scripts/check-release.mjs']);
+fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});
 run('npm',['pack','--ignore-scripts','--pack-destination',out]);
-const packed=fs.readdirSync(out).find(x=>x.endsWith('.tgz'));if(!packed)throw Error('npm pack failed');fs.renameSync(path.join(out,packed),path.join(out,'helm-'+tag+'.tgz'));
-const meta=JSON.parse(run('npm',['pack','--dry-run','--ignore-scripts','--json'],root,true))[0].files;
-const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'helm-release-'));try{const dest=path.join(tmp,'helm');for(const entry of meta){const to=path.join(dest,entry.path);fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(path.join(root,entry.path),to)}run('zip',['-q','-r',path.join(out,'helm-'+tag+'.zip'),'helm'],tmp)}finally{fs.rmSync(tmp,{recursive:true,force:true})}
-const names=fs.readdirSync(out).filter(x=>/\.(zip|tgz)$/.test(x)).sort();const sums=names.map(n=>crypto.createHash('sha256').update(fs.readFileSync(path.join(out,n))).digest('hex')+'  '+n).join('\n')+'\n';fs.writeFileSync(path.join(out,'SHA256SUMS'),sums);console.log(sums);
+const packed=fs.readdirSync(out).filter(n=>n.endsWith('.tgz'));
+if(packed.length!==1)throw Error('expected exactly one npm package tarball');
+fs.renameSync(path.join(out,packed[0]),path.join(out,'helm-'+tag+'.tgz'));
+const manifest=JSON.parse(run('npm',['pack','--dry-run','--ignore-scripts','--json'],{capture:true}));
+const files=manifest[0]?.files?.map(e=>e.path);
+if(!Array.isArray(files)||files.length<20)throw Error('incomplete npm package manifest');
+const zip=createReleaseZip(root,files,path.join(out,'helm-'+tag+'.zip'));
+const assets=fs.readdirSync(out).filter(n=>/\.(zip|tgz)$/.test(n)).sort();
+if(assets.length!==2)throw Error('expected exactly a ZIP and a TGZ asset');
+const checksums=assets.map(name=>crypto.createHash('sha256').update(fs.readFileSync(path.join(out,name))).digest('hex')+'  '+name).join('\n')+'\n';
+fs.writeFileSync(path.join(out,'SHA256SUMS'),checksums);
+console.log('Built '+tag+': '+zip.files+' package entries, '+zip.bytes+' ZIP bytes\n'+checksums);
