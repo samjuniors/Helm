@@ -16,14 +16,23 @@ const setupFile=path.join(root,'setup.mjs');
 const defaultDir=path.join(home,'.helm','plugin');
 const log=(s='')=>console.log(s);
 const call=(args)=>spawnSync(process.execPath,[setupFile,...args],{stdio:'inherit'}).status??1;
+// Queue input as soon as the terminal starts: pseudo-terminal keystrokes can arrive
+// before the async update check completes. readline.question can lose these early lines.
+const readers=new WeakMap();
+const attachReader=(rl)=>{
+  const queue=[],waiting=[];let closed=false;
+  rl.on('line',line=>{if(waiting.length)waiting.shift()(line);else queue.push(line);});
+  rl.on('close',()=>{closed=true;while(waiting.length)waiting.shift()(null);});
+  readers.set(rl,prompt=>{
+    rl.setPrompt(prompt);rl.prompt();
+    if(queue.length)return Promise.resolve(queue.shift());
+    if(closed)return Promise.reject(Object.assign(new Error('Cancelled'),{cancelled:true}));
+    return new Promise((resolve,reject)=>waiting.push(line=>line===null
+      ? reject(Object.assign(new Error('Cancelled'),{cancelled:true})) : resolve(line)));
+  });
+};
 const ask=async (rl,prompt,fallback='')=>{
-  let answer;
-  try{answer=(await rl.question(prompt)).trim();}
-  catch(e){
-    if(e?.code==='ERR_USE_AFTER_CLOSE'||e?.code==='ABORT_ERR'||/Aborted with Ctrl\+D/.test(e?.message||''))
-      throw Object.assign(new Error('Cancelled'),{cancelled:true});
-    throw e;
-  }
+  const answer=(await readers.get(rl)(prompt)).trim();
   if(['q','quit','exit'].includes(answer.toLowerCase()))throw Object.assign(new Error('Cancelled'),{cancelled:true});
   return answer||fallback;
 };
@@ -125,6 +134,7 @@ async function uninstall(rl){
 export async function runWizard(){
   if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Guided setup requires an interactive terminal. Scripts can use helm install --host codex --dry-run followed by helm install --host codex.');
   const rl=readline.createInterface({input:process.stdin,output:process.stdout});
+  attachReader(rl);
   let lastCheckedVersion=null;
   let release=null;
   try{
