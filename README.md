@@ -1,5 +1,10 @@
 # Helm
 
+> [!IMPORTANT]
+> **Project retired — November 4, 2026.** Helm is no longer under active development. Future project-orchestration work is focused on **[Orbit Core](https://github.com/samjuniors/Orbit-Core)**. For new installations and development, use [Orbit Core's documentation](https://github.com/samjuniors/Orbit-Core#readme) and [verified releases](https://github.com/samjuniors/Orbit-Core/releases) instead.
+>
+> The Helm repository, MIT-licensed source, documentation, and existing [v0.11.0 release](https://github.com/samjuniors/Helm/releases/tag/v0.11.0) remain available for historical reference. **Orbit Core is not a drop-in replacement:** do not reuse Helm's installer, database, MCP configuration, or `.agents/product-kit/` state as though it were an Orbit installation. Back up existing work and review Orbit's own installation and migration guidance before changing hosts or projects. No automatic Helm-to-Orbit migration is provided.
+
 **Give AI coding agents a roadmap — and a reliable way to pick up where they left off.**
 
 Helm is a lightweight, local-first **project orchestration system built on the Model Context Protocol (MCP)**. It helps developers plan work, coordinate optional AI helpers, manage Git-backed tasks, and resume projects without losing track of progress.
@@ -179,17 +184,17 @@ Review the [latest release](https://github.com/samjuniors/Helm/releases/latest) 
 
 ## Contributing
 
-Helm is open to bug reports, documentation improvements, compatibility tests, design ideas, and code contributions.
+Helm is retired and is not accepting a new feature roadmap. Please direct new project-orchestration features, design ideas, and development contributions to [Orbit Core](https://github.com/samjuniors/Orbit-Core). This repository's existing contribution and security documentation is retained for reference.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, branch and pull-request guidelines, and testing expectations. For a bug or feature idea, [open an issue](https://github.com/samjuniors/Helm/issues). Please report security concerns using the [security policy](SECURITY.md), not a public issue.
+The previous [contribution guide](CONTRIBUTING.md) is preserved as historical documentation. For new features and issues, use [Orbit Core's issue tracker](https://github.com/samjuniors/Orbit-Core/issues). Please report any security concern affecting existing Helm installations using the [Helm security policy](SECURITY.md), not a public issue.
 
 ## Support Helm
 
-If Helm is useful, you can **star the repository**, share it with other developers, or contribute a fix or example. If a **Sponsor** button is available on the repository, you can also support ongoing development through GitHub Sponsors.
+Helm's historical source and documentation remain available. To support ongoing project-orchestration development, see [Orbit Core](https://github.com/samjuniors/Orbit-Core).
 
 ## Project status
 
-Helm is under active development and its current version is **pre-1.0**. Features and client integrations are still being refined. Review the [latest releases](https://github.com/samjuniors/Helm/releases) for available versions and the [advanced documentation](docs/ADVANCED_USAGE.md) for testing and known limitations.
+**Retired as of November 4, 2026.** No further Helm feature work or routine release series is planned. The final published Helm release is **v0.11.0**. For ongoing development, maintenance, and new deployments, follow [Orbit Core](https://github.com/samjuniors/Orbit-Core). Helm's existing source, releases, and documentation are retained as a historical reference, without any claim of automatic compatibility or migration.
 
 ## License
 
