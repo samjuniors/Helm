@@ -121,7 +121,7 @@ try{
       const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('wizard pseudo-terminal did not exit after prompt: '+stdout));},15000);
       child.stdout.on('data',chunk=>{
         stdout+=chunk.toString('utf8');
-        if(!sent&&stdout.includes('Choose [1-6 or q]')){sent=true;child.stdin.write('q\\n');child.stdin.end();}
+        if(!sent&&stdout.includes('Choose [1-6 or q]')){sent=true;child.stdin.write('q\n');child.stdin.end();}
       });
       child.stderr.on('data',chunk=>{stderr+=chunk.toString('utf8');});
       child.on('error',error=>{clearTimeout(timeout);reject(error);});
