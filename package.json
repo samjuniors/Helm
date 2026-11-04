@@ -1,6 +1,6 @@
 {
   "name": "@samjuniors/helm",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Helm: project lifecycle, agent orchestration, Git workflows, QA and recovery for MCP-compatible assistants",
   "type": "module",
   "license": "MIT",
@@ -16,12 +16,13 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node tests/init-safety-test.mjs && node tests/update-test.mjs && node tests/release-test.mjs && node tests/rename-test.mjs && node tests/v041-compat-test.mjs && node tests/helm-test.mjs && node tests/setup-test.mjs && node tests/self-update-test.mjs && node tests/lifecycle-cli-test.mjs && node tests/bootstrap-test.mjs && node tests/path-onboarding-test.mjs && node tests/guided-setup-test.mjs",
+    "test": "node tests/init-safety-test.mjs && node tests/update-test.mjs && node tests/release-test.mjs && node tests/rename-test.mjs && node tests/v041-compat-test.mjs && node tests/helm-test.mjs && node tests/setup-test.mjs && node tests/self-update-test.mjs && node tests/lifecycle-cli-test.mjs && node tests/bootstrap-test.mjs && node tests/path-onboarding-test.mjs && node tests/guided-setup-test.mjs && node tests/maintenance-test.mjs",
     "check": "node scripts/check-release.mjs",
     "pack:release": "node scripts/build-release.mjs",
     "prepack": "node scripts/check-release.mjs",
     "test:integration": "npm install --prefix tests --no-audit --no-fund && node tests/e2e.mjs",
-    "audit:repo": "node scripts/check-repo.mjs --no-fetch"
+    "audit:repo": "node scripts/check-repo.mjs --no-fetch",
+    "release:manual": "node scripts/manual-release.mjs"
   },
   "files": [
     "LICENSE",

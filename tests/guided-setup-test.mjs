@@ -61,11 +61,11 @@ try{
   assert.throws(()=>parseClientSelection('antigravity',discovered),/guided manual/);
   pass('wizard selection is explicit; manual-only IDEs never get auto-registered');
   const latest=await latestStatus('0.9.1',async()=>({
-    ok:true,json:async()=>({tag_name:'v0.10.0',draft:false,prerelease:false}),
+    ok:true,json:async()=>({tag_name:'v0.11.0',draft:false,prerelease:false}),
   }));
   assert.equal(latest.status,'available');
-  const current=await latestStatus('0.10.0',async()=>({
-    ok:true,json:async()=>({tag_name:'v0.10.0',draft:false,prerelease:false}),
+  const current=await latestStatus('0.11.0',async()=>({
+    ok:true,json:async()=>({tag_name:'v0.11.0',draft:false,prerelease:false}),
   }));
   assert.equal(current.status,'current');
   const offline=await latestStatus('0.9.1',async()=>{throw Error('offline');});

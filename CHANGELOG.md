@@ -1,5 +1,12 @@
 # Helm Changelog
 
+## 0.11.0
+- Add `helm release --dry-run` / `--yes` for Actions-free publication, with clean-main checks, all regression/integration gates, checksum verification, immutable tags and custom release notes.
+- Make ZIP packaging portable across Windows, macOS and Linux without a system `zip` command.
+- Add `helm repair --dry-run` / `--yes` to recover the Helm-managed launcher and persistent per-user PATH. Keep other environment entries and foreign launchers untouched; restore own shell profile blocks only.
+- Correct client registration to use an absolute Node executable. Bind project-scoped Claude registrations to their saved project folder and use marked, non-global Codex project MCP configuration.
+- Handle normal EOF when closing the guided wizard from a pseudo-terminal; expand environment, safety, project-scoping and archiving regression checks.
+
 ## 0.10.0
 - Add a lightweight guided installer wizard available from the normal setup launchers and `helm setup`. Show detected coding environments, choose supported clients and installation folder, preview exact planned actions, and confirm explicitly before writing.
 - Add advanced read-only `helm doctor [--json] [--check]` and `helm setup --json`; keep explicit `helm install --host ... --dir ... --dry-run` scripting for PowerShell, CMD and Unix.
