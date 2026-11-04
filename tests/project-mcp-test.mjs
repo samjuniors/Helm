@@ -46,12 +46,17 @@ try {
   // Symlinked directories and dangling linked config files must never be followed.
   const linked=path.join(home,'linked'),outside=path.join(home,'outside');
   fs.mkdirSync(linked);fs.mkdirSync(outside);
-  fs.symlinkSync(outside,path.join(linked,'.codex'),process.platform==='win32'?'junction':'dir');
-  assert.throws(()=>manageProjectMcp({...input,projectDir:linked,host:'codex'}),/linked or non-directory/);
-  assert.equal(fs.readdirSync(outside).length,0);
+  const symlinkIfAllowed=(target,link,type)=>{
+    try{fs.symlinkSync(target,link,type);return true;}
+    catch(e){if(process.platform==='win32'&&['EPERM','EACCES','ENOTSUP'].includes(e.code))return false;throw e;}
+  };
+  if(symlinkIfAllowed(outside,path.join(linked,'.codex'),process.platform==='win32'?'junction':'dir')){
+    assert.throws(()=>manageProjectMcp({...input,projectDir:linked,host:'codex'}),/linked or non-directory/);
+    assert.equal(fs.readdirSync(outside).length,0);
+  }
   const dangling=path.join(home,'dangling');fs.mkdirSync(dangling);
-  fs.symlinkSync(path.join(home,'missing-mcp.json'),path.join(dangling,'.mcp.json'),'file');
-  assert.throws(()=>manageProjectMcp({...input,projectDir:dangling,host:'claude'}),/linked or non-file/);
+  if(symlinkIfAllowed(path.join(home,'missing-mcp.json'),path.join(dangling,'.mcp.json'),'file'))
+    assert.throws(()=>manageProjectMcp({...input,projectDir:dangling,host:'claude'}),/linked or non-file/);
 
   console.log('Project MCP scoped installation, uninstall, backup and conflict guards: PASS');
 }finally{fs.rmSync(home,{recursive:true,force:true});}
