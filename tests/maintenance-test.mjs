@@ -22,7 +22,7 @@ try {
   assert.match(fs.readFileSync(user,'utf8'),/custom PATH stays/);pass('uninstall removes only Helm-owned PATH block');
   const foreign=path.join(home,'.zprofile');fs.writeFileSync(foreign,'# manually edited\nexport PATH="$HOME/tools:$PATH"\n');
   assert.equal(modifyShellProfile(foreign,'remove').changed,false);pass('unowned profiles are never removed');
-  const linked=path.join(home,'.linked');fs.symlinkSync(foreign,linked);assert.throws(()=>modifyShellProfile(linked,'add'),/symlink/);pass('symlink shell profiles cannot be modified');
+  if(process.platform!=='win32') { const linked=path.join(home,'.linked');fs.symlinkSync(foreign,linked);assert.throws(()=>modifyShellProfile(linked,'add'),/symlink/);pass('symlink shell profiles cannot be modified'); }
   const project=path.join(temp,'project');fs.mkdirSync(project);
   const config=path.join(project,'.codex','config.toml');fs.mkdirSync(path.dirname(config));
   fs.writeFileSync(config,'model = "keep"\n');

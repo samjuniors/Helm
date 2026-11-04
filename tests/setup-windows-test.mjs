@@ -37,7 +37,7 @@ try{
   assert.equal(JSON.parse(readFileSync(path.join(target,'package.json'),'utf8')).version,'0.11.0');
   const launcher=spawnSync(shim,['version'],{shell:true,env,cwd:tmp,encoding:'utf8',timeout:12000});
   check(launcher,'launcher');
-  assert.match(output(launcher),/Helm 0\.10\.0/);pass('Windows launcher executes installed Helm v0.11.0');
+  assert.match(output(launcher),/Helm 0\.11\.0/);pass('Windows launcher executes installed Helm v0.11.0');
   check(run(first,['install','--host','codex','--force']),'repeat install');
   assert.equal(JSON.parse(readFileSync(state,'utf8')).version,'0.11.0');pass('forced install cannot overwrite an existing managed installation');
   check(run(first,['status']),'status with install');pass('status works with missing host executables');
