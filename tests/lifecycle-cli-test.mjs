@@ -36,7 +36,7 @@ try {
 
   check(invoke(extracted,['install','--host','codex']),'managed install');
   assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).host,'codex');
-  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.10.0');
+  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.11.0');
   assert.ok(fs.existsSync(target) && fs.existsSync(launcher));
   pass('helm install creates recorded managed installation and launcher');
 
@@ -46,7 +46,7 @@ try {
   pass('installed launcher source reports correct version');
 
   check(invoke(target,['install']),'repeated install');
-  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.10.0');
+  assert.equal(JSON.parse(fs.readFileSync(record,'utf8')).version,'0.11.0');
   pass('repeated install is idempotent');
 
   const userFile=path.join(home,'.helm','my-project-notes.txt');

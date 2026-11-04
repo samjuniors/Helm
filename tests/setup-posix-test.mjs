@@ -52,7 +52,7 @@ r = setup(src, ['install']); ok(r.status === 0 && /Already installed/.test(o(r))
 r = setup(src, ['status']); ok(/registered/.test(o(r)) && !/NOT registered/.test(last) && /Launcher/.test(last), 'status shows both registered and the launcher');
 
 console.log('3. update from a newer folder');
-const nw = fresh('newer'); const pj = JSON.parse(readFileSync(path.join(nw, 'package.json'), 'utf8')); pj.version = '9.9.9'; writeFileSync(path.join(nw, 'package.json'), JSON.stringify(pj, null, 2)); const mcpPath=path.join(nw,'server/mcp.mjs'); const mcpSource=readFileSync(mcpPath,'utf8'); writeFileSync(mcpPath,mcpSource.replace("const VERSION = '0.10.0';","const VERSION = '9.9.9';")); writeFileSync(path.join(nw, 'NEW_MARKER.txt'), 'x');
+const nw = fresh('newer'); const pj = JSON.parse(readFileSync(path.join(nw, 'package.json'), 'utf8')); pj.version = '9.9.9'; writeFileSync(path.join(nw, 'package.json'), JSON.stringify(pj, null, 2)); const mcpPath=path.join(nw,'server/mcp.mjs'); const mcpSource=readFileSync(mcpPath,'utf8'); writeFileSync(mcpPath,mcpSource.replace("const VERSION = '0.11.0';","const VERSION = '9.9.9';")); writeFileSync(path.join(nw, 'NEW_MARKER.txt'), 'x');
 r = setup(nw, ['update', '--dry-run']); ok(r.status === 0 && JSON.parse(readFileSync(path.join(H, 'plugin', 'package.json'), 'utf8')).version !== '9.9.9', 'update --dry-run changes nothing');
 r = setup(nw, ['update']); const t2 = o(r);
 ok(r.status === 0 && /Updated and verified helm 9\.9\.9/.test(t2) && JSON.parse(readFileSync(path.join(H, 'plugin', 'package.json'), 'utf8')).version === '9.9.9' && existsSync(path.join(H, 'plugin', 'NEW_MARKER.txt')), 'update puts the newer files into the installed copy and the self-test passes');
