@@ -16,8 +16,25 @@ const setupFile=path.join(root,'setup.mjs');
 const defaultDir=path.join(home,'.helm','plugin');
 const log=(s='')=>console.log(s);
 const call=(args)=>spawnSync(process.execPath,[setupFile,...args],{stdio:'inherit'}).status??1;
+// Queue terminal lines immediately, including input piped into a pseudo-terminal
+// while the async release lookup is running. readline.question() loses such early
+// lines and can hang with an unresolved promise after stdin closes (Node 18/22).
+const readers=new WeakMap();
+const attachReader=(rl)=>{
+  const queued=[],waiting=[];
+  let closed=false;
+  rl.on('line',line=>{if(waiting.length)waiting.shift()(line);else queued.push(line);});
+  rl.on('close',()=>{closed=true;while(waiting.length)waiting.shift()(null);});
+  readers.set(rl,(prompt)=>{
+    rl.setPrompt(prompt);rl.prompt();
+    if(queued.length)return Promise.resolve(queued.shift());
+    if(closed)return Promise.reject(Object.assign(new Error('Cancelled'),{cancelled:true}));
+    return new Promise((resolve,reject)=>waiting.push(line=>line===null
+      ? reject(Object.assign(new Error('Cancelled'),{cancelled:true})) : resolve(line)));
+  });
+};
 const ask=async (rl,prompt,fallback='')=>{
-  const answer=(await rl.question(prompt)).trim();
+  const answer=(await readers.get(rl)(prompt)).trim();
   if(['q','quit','exit'].includes(answer.toLowerCase()))throw Object.assign(new Error('Cancelled'),{cancelled:true});
   return answer||fallback;
 };
@@ -120,6 +137,7 @@ async function uninstall(rl){
 export async function runWizard(){
   if(!process.stdin.isTTY||!process.stdout.isTTY)throw new Error('Guided setup requires an interactive terminal. Scripts can use helm install --host codex --dry-run followed by helm install --host codex.');
   const rl=readline.createInterface({input:process.stdin,output:process.stdout});
+  attachReader(rl);
   let lastCheckedVersion=null;
   let release=null;
   try{
