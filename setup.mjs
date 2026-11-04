@@ -208,6 +208,7 @@ async function uninstall() {
   if (dry) return;
   if (!(await confirm('Remove it?'))) { console.log('Cancelled. Nothing was changed.'); return; }
   const registeredHosts = installedHostTargets(cur);
+  if (cur.scope !== 'user' && registeredHosts.includes('codex') && projectCodexStatus(cur.projectDir,cur.name).status === 'foreign') die('Codex project registration was modified outside Helm; refusing partial uninstall. Review it first.');
   for (const [c, args] of [['claude', ['mcp', 'remove', cur.name, '--scope', cur.scope]], ['codex', ['mcp', 'remove', cur.name]]]) {
     if (!registeredHosts.includes(c)) continue;
     if (c === 'codex' && cur.scope !== 'user') {

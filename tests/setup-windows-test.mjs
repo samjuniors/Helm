@@ -51,7 +51,7 @@ try{
   check(run(second,['update','--dry-run']),'update dry-run');
   assert.equal(JSON.parse(readFileSync(path.join(target,'package.json'),'utf8')).version,'0.11.0');pass('update dry-run changes no installed files');
   check(run(second,['update']),'update');
-  assert.equal(JSON.parse(readFileSync(path.join(target,'package.json'),'utf8')).version,'0.11.0');
+  assert.equal(JSON.parse(readFileSync(path.join(target,'package.json'),'utf8')).version,'0.12.0');
   assert.ok(existsSync(path.join(target,'NEW_MARKER.txt')));
   const backups=readdirSync(path.join(home,'.helm')).filter(x=>x.startsWith('plugin-backup-'));
   assert.ok(backups.length>=1);pass('update upgrades with verified MCP start and keeps backups');

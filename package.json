@@ -71,7 +71,8 @@
     "server/user-path.mjs",
     "tests/path-onboarding-test.mjs",
     "wizard.mjs",
-    "tests/guided-setup-test.mjs"
+    "tests/guided-setup-test.mjs",
+    "tests/maintenance-test.mjs"
   ],
   "homepage": "https://github.com/samjuniors/Helm#readme",
   "bugs": {
