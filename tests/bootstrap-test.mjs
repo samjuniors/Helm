@@ -87,7 +87,7 @@ if (process.platform === 'win32') {
     const launcher=path.join(home,'.helm','bin','helm');
     const v=spawnSync(launcher,['version'],{env,encoding:'utf8',timeout:10000});
     assert.equal(v.status,0,'Installed launcher failed '+output(v));
-    assert.match(output(v),/Helm 0\.10\.0/);
+    assert.match(output(v),/Helm 0\.11\.0/);
     pass('POSIX installed launcher works');
     const remove=spawnSync(launcher,['uninstall','--yes'],{env,encoding:'utf8',timeout:20000});
     assert.equal(remove.status,0,'Installed CLI uninstall failed '+output(remove));
