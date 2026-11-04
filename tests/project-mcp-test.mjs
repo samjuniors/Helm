@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { manageProjectMcp } from '../server/project-mcp.mjs';
+const home=fs.mkdtempSync(path.join(os.tmpdir(),'helm-project-mcp-'));
+try {
+  const project=path.join(home,'one'),server=path.join(home,'server.mjs');
+  fs.mkdirSync(project);fs.writeFileSync(server,'// server');
+  const claude=path.join(project,'.mcp.json'),codex=path.join(project,'.codex','config.toml');
+  fs.mkdirSync(path.dirname(codex));
+  fs.writeFileSync(claude,JSON.stringify({mcpServers:{thirdparty:{command:'do-not-touch'}}}));
+  fs.writeFileSync(codex,'model = "test"\n');
+  const input={projectDir:project,serverPath:server,home};
+  const before=fs.readFileSync(claude,'utf8');
+  assert.equal(manageProjectMcp({...input,dryRun:true}).changes.length,2);
+  assert.equal(fs.readFileSync(claude,'utf8'),before);
+  manageProjectMcp(input);
+  const m=JSON.parse(fs.readFileSync(claude,'utf8'));
+  assert.equal(m.mcpServers.helm.command,process.execPath);
+  assert.deepEqual(m.mcpServers.helm.args,[server]);
+  assert.equal(m.mcpServers.thirdparty.command,'do-not-touch');
+  assert.match(fs.readFileSync(codex,'utf8'),/mcp_servers\.helm/);
+  assert.ok(manageProjectMcp(input).changes.every(z=>!z.changed));
+  manageProjectMcp({...input,action:'uninstall'});
+  assert.equal(JSON.parse(fs.readFileSync(claude,'utf8')).mcpServers.thirdparty.command,'do-not-touch');
+  assert.doesNotMatch(fs.readFileSync(codex,'utf8'),/mcp_servers\.helm/);
+  fs.writeFileSync(claude,JSON.stringify({mcpServers:{helm:{command:'other',args:[]}}}));
+  assert.throws(()=>manageProjectMcp(input),/custom Claude/);
+  assert.ok(fs.existsSync(path.join(home,'.helm','backups')));
+  console.log('Project MCP scoped installation, uninstall, backup and conflict guards: PASS');
+}finally{fs.rmSync(home,{recursive:true,force:true});}

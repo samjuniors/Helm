@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const run=(...args)=>spawnSync(process.execPath,[path.join(root,'bin','helm.mjs'),'release',...args],{cwd:root,encoding:'utf8',timeout:20000});
+const preview=run('--dry-run');
+assert.equal(preview.status,0,preview.stderr);
+assert.match(preview.stdout,/Preview only: no tests, packaging, git tags or GitHub changes/);
+const denied=run('--publish');
+assert.notEqual(denied.status,0);
+assert.match(denied.stderr,/--yes/);
+const help=run('--help');
+assert.equal(help.status,0,help.stderr);
+console.log('Offline local release preview, explicit publish approval and command routing: PASS');
