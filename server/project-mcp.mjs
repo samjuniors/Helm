@@ -7,8 +7,9 @@ const START='# >>> Helm project MCP (managed) >>>',END='# <<< Helm project MCP (
 const jsonConfig=(project)=>path.join(project,'.mcp.json');
 const tomlConfig=(project)=>path.join(project,'.codex','config.toml');
 function contents(file){
-  if(!fs.existsSync(file))return null;
-  if(!fs.lstatSync(file).isFile())throw Error('Refusing to modify linked or non-file configuration: '+file);
+  const stat=fs.lstatSync(file,{throwIfNoEntry:false});
+  if(!stat)return null;
+  if(!stat.isFile()||stat.isSymbolicLink())throw Error('Refusing to modify linked or non-file configuration: '+file);
   return fs.readFileSync(file,'utf8');
 }
 function backup(file,home){
@@ -45,6 +46,10 @@ export function manageProjectMcp({projectDir=process.cwd(),action='install',host
       const changed=action==='install'?(!existing||existing.command!==nodePath):Boolean(existing);
       planned.push({target,file,previous,next,changed});
     }else{
+      const codexDir=path.join(project,'.codex');
+      const codexDirStat=fs.lstatSync(codexDir,{throwIfNoEntry:false});
+      if(codexDirStat&&(!codexDirStat.isDirectory()||codexDirStat.isSymbolicLink()))
+        throw Error('Refusing linked or non-directory .codex project configuration');
       const file=tomlConfig(project),previous=contents(file),content=previous||'',block=codexBlock(nodePath,server);
       const s=content.indexOf(START),e=content.indexOf(END);
       if((s>=0)!==(e>=0))throw Error('Partial Helm Codex markers: review manually');
