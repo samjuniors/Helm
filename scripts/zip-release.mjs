@@ -30,7 +30,7 @@ export function createReleaseZip(root, files, output){
     central.writeUInt16LE(0x0314,4);central.writeUInt16LE(20,6);central.writeUInt16LE(0x0800,8);
     central.writeUInt16LE(0,10);central.writeUInt16LE(0,12);central.writeUInt16LE(0x21,14);
     central.writeUInt32LE(crc,16);central.writeUInt32LE(size,20);central.writeUInt32LE(size,24);
-    central.writeUInt16LE(name.length,28);central.writeUInt32LE(0o100644<<16,38);
+    central.writeUInt16LE(name.length,28);central.writeUInt32LE(0o100644 * 0x10000,38);
     central.writeUInt32LE(offset,42);
     centrals.push(central,name);
     offset+=local.length+name.length+size;

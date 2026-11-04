@@ -63,8 +63,9 @@ function writeShims(dir) {
   for (const file of shimFiles()) {
     if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('HELM-MANAGED-LAUNCHER')) die(`refusing to overwrite an existing non-Helm launcher: ${file}`);
   }
-  if (win) fs.writeFileSync(path.join(BIN_DIR, `${NAME}.cmd`), `@echo off\r\nrem HELM-MANAGED-LAUNCHER\r\nset "HELM_CMD_SHIM=%~f0"\r\nnode "${js}" %*\r\nset "HELM_EXIT=%errorlevel%"\r\nif not "%HELM_EXIT%"=="0" exit /b %HELM_EXIT%\r\nif /i not "%~1"=="uninstall" exit /b 0\r\nif /i "%~2"=="--dry-run" exit /b 0\r\nif /i "%~3"=="--dry-run" exit /b 0\r\nif /i "%~4"=="--dry-run" exit /b 0\r\nif exist "${STATE}" exit /b 0\r\n(goto) 2>nul & del "%~f0" >nul\r\n`);
-  else { const f = path.join(BIN_DIR, NAME); fs.writeFileSync(f, `#!/bin/sh\n# HELM-MANAGED-LAUNCHER\nexec node "${js}" "$@"\n`); fs.chmodSync(f, 0o755); }
+  const nodeExec=process.execPath;
+  if (win) fs.writeFileSync(path.join(BIN_DIR, `${NAME}.cmd`), `@echo off\r\nrem HELM-MANAGED-LAUNCHER\r\nset "HELM_CMD_SHIM=%~f0"\r\n"${nodeExec.replaceAll('%','%%')}" "${js}" %*\r\nset "HELM_EXIT=%errorlevel%"\r\nif not "%HELM_EXIT%"=="0" exit /b %HELM_EXIT%\r\nif /i not "%~1"=="uninstall" exit /b 0\r\nif /i "%~2"=="--dry-run" exit /b 0\r\nif /i "%~3"=="--dry-run" exit /b 0\r\nif /i "%~4"=="--dry-run" exit /b 0\r\nif exist "${STATE}" exit /b 0\r\n(goto) 2>nul & del "%~f0" >nul\r\n`);
+  else { const f = path.join(BIN_DIR, NAME); fs.writeFileSync(f, `#!/bin/sh\n# HELM-MANAGED-LAUNCHER\nexec '${nodeExec.replaceAll("'","'\\''")}' '${js.replaceAll("'","'\\''")}' "$@"\n`); fs.chmodSync(f, 0o755); }
 }
 const onPath = () => (process.env.PATH ?? '').split(path.delimiter).some((p) => path.resolve(p) === path.resolve(BIN_DIR));
 function pathHelp() {
@@ -97,7 +98,7 @@ function install() {
       }
       console.log(`  ${host}: ${dry ? 'would add' : 'adding'} an absent MCP registration (no other entries modified).`);
       if (!dry) {
-        const r = spawnSync(process.execPath, [path.join(cur.dir, 'install.mjs'), '--host', host, '--scope', cur.scope], { stdio: 'inherit' });
+        const r = spawnSync(process.execPath, [path.join(cur.dir, 'install.mjs'), '--host', host, '--scope', cur.scope, ...(cur.projectDir ? ['--project', cur.projectDir] : [])], { stdio: 'inherit' });
         if (r.status !== 0) die(`${host} registration failed. Previous clients and plugin files were preserved.`);
         added.push(host);
       }

@@ -54,13 +54,13 @@ Helm orchestrates work; it does **not** replace your coding assistant, perform w
 **Windows PowerShell:**
 
 ~~~powershell
-irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.ps1' | iex
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' | iex
 ~~~
 
 **macOS / Linux:**
 
 ~~~sh
-curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.sh' | sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh' | sh
 ~~~
 
 These commands execute a remote script: [review the Windows script](scripts/bootstrap.ps1) or [Unix script](scripts/bootstrap.sh) before running, or [download and inspect it first](docs/INSTALLATION.md#download-and-inspect-before-execution). The bootstrap downloads the latest official release, verifies SHA-256, runs Helm's guarded installer, and never overwrites an unrecognized installation.
@@ -198,3 +198,10 @@ Helm is available under the [MIT License](LICENSE).
 ---
 
 *Build with a plan. Resume with context. Keep control of your project.*
+
+
+## Maintenance and offline-compatible publishing
+
+Helm v0.11 adds `helm repair --dry-run` / `helm repair --yes` for Helm-owned launcher and user-PATH repairs. Its CLI and client registrations use the resolved Node executable, rather than assuming an IDE inherits the terminal PATH. Project-scoped Codex MCP registration uses a marked block in `.codex/config.toml`, with no global Codex registration. See [installation](docs/INSTALLATION.md).
+
+Maintainers can publish without paid GitHub Actions from a clean, reviewed source checkout using `helm release --dry-run` followed by `helm release --yes`. This requires tests, Git, npm, an authenticated `gh` CLI, and the matching pushed `main` commit. It creates signed-off-by-checksum ZIP/TGZ assets with custom notes. See [releasing](docs/RELEASING.md).

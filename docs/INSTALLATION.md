@@ -21,13 +21,13 @@ With [Node.js 18+](https://nodejs.org/) and Git installed, use a **version-pinne
 **Windows PowerShell:**
 
 ~~~powershell
-irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.ps1' | iex
+irm 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' | iex
 ~~~
 
 **macOS / Linux:**
 
 ~~~sh
-curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.sh' | sh
+curl -fsSL 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh' | sh
 ~~~
 
 Both commands fetch code and execute it immediately. **Review the script before executing.** The safer inspect-first method is below. Bootstrapping uses the official GitHub Releases API and assets; it does not clone the Git repository or write anything into your existing project.
@@ -56,7 +56,7 @@ A custom installation directory is not silently deleted by uninstall: the wizard
 On Windows:
 
 ~~~powershell
-Invoke-WebRequest 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.ps1' -OutFile .\helm-bootstrap.ps1
+Invoke-WebRequest 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.ps1' -OutFile .\helm-bootstrap.ps1
 Get-Content .\helm-bootstrap.ps1
 & .\helm-bootstrap.ps1 -DryRun
 & .\helm-bootstrap.ps1
@@ -67,7 +67,7 @@ PowerShell execution policy may block scripts saved from the internet. Review th
 On macOS or Linux:
 
 ~~~sh
-curl -fsSLo ./helm-bootstrap.sh 'https://raw.githubusercontent.com/samjuniors/Helm/v0.10.0/scripts/bootstrap.sh'
+curl -fsSLo ./helm-bootstrap.sh 'https://raw.githubusercontent.com/samjuniors/Helm/v0.9.1/scripts/bootstrap.sh'
 cat ./helm-bootstrap.sh
 sh ./helm-bootstrap.sh --dry-run
 sh ./helm-bootstrap.sh
@@ -213,3 +213,19 @@ GitHub provides a TGZ too, but the npm package is marked `"private": true` to pr
 External helper agents run with the permissions of your account. Git worktrees are **not** security sandboxes. Review commands and approvals before enabling unattended agents.
 
 For missing commands, installation conflicts, or connection errors, see [Troubleshooting](TROUBLESHOOTING.md).
+
+
+## Automatic environment repair (v0.11.0)
+
+A managed Helm install now keeps its launcher accessible through the current user's PATH. On Windows it uses only the **user** registry PATH and preserves other entries. On macOS/Linux it adds a uniquely marked Helm section to `~/.profile` and the active shell's supported profile when appropriate; uninstall removes only Helm-owned sections. Existing manually authored PATH lines remain untouched. Changes to PATH are read by newly opened terminals; a running IDE or shell may need restarting.
+
+Preview a repair (no writes):
+
+```sh
+helm repair --dry-run
+helm repair --yes
+```
+
+When PowerShell does not recognize `helm`, invoke its full launcher: `& "$HOME\.helm\bin\helm.cmd" repair --yes`. You can also run `node setup.mjs install --host none` from your existing installed copy. Repair recreates only missing Helm-owned launchers; it refuses foreign launchers, invalid installation records, and any attempt to modify system-wide PATH.
+
+**Global versus project MCP registration:** `helm install --scope user` manages the user-wide CLI registration. For project-scoped Claude/Codex integration use `helm install --scope project --project /absolute/path/to/project --host codex` from an uninstalled managed profile. Codex project mode writes only a uniquely marked block in the project's `.codex/config.toml`; Claude Code registration runs from the recorded project directory. Uninstall uses that recorded directory. A single managed Helm installation never silently changes from global to project scope; use an explicit migration instead. Existing project state and any foreign MCP entries are preserved.

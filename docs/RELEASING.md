@@ -28,7 +28,7 @@ npm pack --dry-run --ignore-scripts
 
 Confirm installation and existing-project upgrade compatibility; test MCP initialization and helper controls, guard regressions, clean/dirty Git working trees and host-specific behavior when available. Inspect the actual `npm pack` contents for dependencies, secrets and unexpected files.
 
-GitHub Actions tests Node 18/22 on Ubuntu/Windows. **At the time of the v0.7.0 audit, runners execute but both OS matrices fail tests; see [issue #2](https://github.com/samjuniors/Helm/issues/2).** This is an actual test blocker, not evidence of a runner/billing failure. Do not mark cross-platform CI as passed. Locally verified release builds and manual uploads are an approved fallback only when their limitations are recorded.
+GitHub Actions tests Node 18/22 on Ubuntu/Windows. On the v0.10.0 merged-main run, Windows tests succeeded but Linux guided-wizard pseudo-terminal quit failed. The v0.11.0 regression adjusts EOF handling; actual CI results must still be checked. Account-level payment restrictions can independently prevent hosted Actions from running. Locally verified release builds and manual uploads are an approved fallback only when their limitations are recorded.
 
 ## Bootstrap link compatibility
 
@@ -40,7 +40,7 @@ Bootstrap scripts must be included in both release archives, tested on their tar
 
 After the PR is reviewed and merged, verify the intended `main` commit and a clean checkout. The release tag **must point to that exact commit**. Build artifacts from the same source, not from an earlier uploaded ZIP, temporary prototype, or mismatched working tree.
 
-The existing package builder uses the external `zip` command. Run it in a supported environment with `node`, `npm` and `zip` available (for example Linux or a suitable Unix shell). Standard Windows PowerShell may not have `zip` installed; do **not** claim `npm run pack:release` works there without checking.
+Starting in v0.11.0, the package builder uses an internal ZIP32 writer (no external `zip` program), plus `npm pack` for the tarball. Release packaging can run on Windows, Linux or macOS wherever Node.js and npm work. The ZIP includes dotfiles; always verify extracted assets on the actual host.
 
 ~~~sh
 npm run pack:release
@@ -83,3 +83,15 @@ If tagging succeeds but asset upload fails, **do not retag or create an unrelate
 `.github/workflows/release.yml` can publish automatically **only after its CI test jobs actually pass**. It must require `docs/releases/vX.Y.Z.md`, not substitute the entire changelog for custom release notes. Until the cross-platform failures in issue #2 are fixed, use verified local checks and accurately disclose CI limitations.
 
 The approved manual fallback does **not** mean failed test cases may be ignored. Differentiate unrun host coverage from known failing tests in release notes and issues.
+
+
+## Actions-free local release (v0.11.0)
+
+From the reviewed **clean** `main` checkout with Git, Node/npm and `gh auth login` already configured:
+
+```sh
+node bin/helm.mjs release --dry-run
+node bin/helm.mjs release --yes
+```
+
+The `--yes` command runs metadata checks, the full `npm test` suite, MCP integration tests (which install test dependencies), repository audit, portable release packaging and local SHA-256 verification. It checks that origin is `samjuniors/Helm`, the remote `main` commit matches the current checkout, and the tag is not assigned to another commit. Only then does it push the tag and create a GitHub Release with version-specific notes and three verified assets. Never assume host-specific tests passed without evidence. If a release already exists it refuses to overwrite it. It does not use GitHub Actions or modify application projects.

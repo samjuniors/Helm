@@ -6,6 +6,7 @@ Each release is identified by a Git tag and has an official GitHub Releases page
 
 | Version | Highlights | Notes | Official release |
 | --- | --- | --- | --- |
+| **v0.11.0** | Manual release command, persistent user PATH repair, project-scope MCP safety, portable ZIP | [v0.11.0](v0.11.0.md) | *Pending publication* |
 | **v0.10.0** | Guided terminal setup, client detection and advanced diagnostics | [v0.10.0](v0.10.0.md) | [GitHub](https://github.com/samjuniors/Helm/releases/tag/v0.10.0) |
 | **v0.9.1** | Windows user PATH onboarding and command-not-found fix | [v0.9.1](v0.9.1.md) | [GitHub](https://github.com/samjuniors/Helm/releases/tag/v0.9.1) |
 | **v0.9.0** | Verified first-time bootstrap and install/uninstall CLI | [v0.9.0](v0.9.0.md) | [GitHub](https://github.com/samjuniors/Helm/releases/tag/v0.9.0) |

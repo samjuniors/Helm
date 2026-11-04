@@ -85,3 +85,12 @@ Avoid placing the managed installation inside a temporary extracted folder that 
 Open a [bug report](https://github.com/samjuniors/Helm/issues/new/choose) with a reproducible sequence, expected and actual outcomes, Helm version, OS/Node version, client name/version, and a minimal test project if possible.
 
 **Do not paste credentials, API keys, private project code, or home-directory secrets into a public issue.** Use [SECURITY.md](../SECURITY.md) for vulnerabilities.
+
+
+## Repair reports that the launcher or project configuration is not owned by Helm
+
+Run `helm doctor --json` to inspect the state and then `helm repair --dry-run`. `helm repair --yes` can recreate a missing Helm-managed launcher and add only its per-user PATH entry. It never replaces another program's launcher, changes machine-wide PATH, or removes third-party MCP registrations. Project-scoped registrations are tied to the original recorded project directory and may not be silently moved to another project. Restart terminals/IDEs after PATH repairs.
+
+## GitHub Actions billing blocks a release
+
+Use `helm release --dry-run` and, **only from a clean, reviewed `main` checkout**, `helm release --yes`. The manual path runs metadata, regression tests, the MCP SDK integration suite and repository checks before building ZIP/TGZ/checksums and publishing through an authenticated `gh` CLI. No hosted GitHub Actions minutes are needed. It refuses dirty source, mismatched origin/main and existing published releases. If release upload fails after tag push, preserve the original tag and investigate; never move an existing tag.
