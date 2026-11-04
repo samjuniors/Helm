@@ -6,6 +6,8 @@
 //   node install.mjs --scope project      Claude Code: this project only (default: user = all projects)
 //   node install.mjs --dry-run            show the commands, change nothing
 import path from 'node:path';
+import fs from 'node:fs';
+import { registerProjectCodex } from './server/project-mcp.mjs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -13,11 +15,13 @@ const server = path.join(here, 'server', 'mcp.mjs');
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
 const host = opt('host', 'all'), scope = opt('scope', 'user'), dry = argv.includes('--dry-run');
-const NAME = opt('name', 'helm');   // the name your tools show for this server
+const NAME = opt('name', 'helm');
+const projectDir = path.resolve(opt('project', process.cwd()));
+if (scope !== 'user' && (!fs.existsSync(projectDir) || !fs.statSync(projectDir).isDirectory())) { console.error('The project directory does not exist: '+projectDir); process.exit(1); }   // the name your tools show for this server
 if (!/^[a-z][a-z0-9-]{1,30}$/.test(NAME)) { console.error('--name must be lowercase letters, digits and dashes'); process.exit(1); }
 const win = process.platform === 'win32';
 const q = (a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
-const run = (cmd, args) => (win ? spawnSync([cmd, ...args.map(q)].join(' '), { shell: true, encoding: 'utf8' }) : spawnSync(cmd, args, { encoding: 'utf8' }));
+const run = (cmd, args, cwd = process.cwd()) => (win ? spawnSync([cmd, ...args.map(q)].join(' '), { shell: true, encoding: 'utf8', cwd }) : spawnSync(cmd, args, { encoding: 'utf8', cwd }));
 const has = (cmd) => { const r = run(cmd, ['--version']); return !r.error && r.status === 0; };
 if (!['all', 'none', 'claude', 'codex'].includes(host)) { console.error('--host must be all, none, claude or codex'); process.exit(1); }
 if (!['user', 'project', 'local'].includes(scope)) { console.error('--scope must be user, project or local'); process.exit(1); }
@@ -30,14 +34,21 @@ console.log(`Self-test OK: the server starts and lists ${tools} tools (${server}
 
 // 2. register with each tool
 const targets = [];
-if (host === 'all' || host === 'claude') targets.push({ name: 'Claude Code', cmd: 'claude', args: ['mcp', 'add', '--scope', scope, NAME, '--', 'node', server], remove: ['mcp', 'remove', NAME, '--scope', scope] });
-if (host === 'all' || host === 'codex') targets.push({ name: 'Codex (CLI, desktop app and IDE extension share this)', cmd: 'codex', args: ['mcp', 'add', NAME, '--', 'node', server], remove: ['mcp', 'remove', NAME] });
+if (host === 'all' || host === 'claude') targets.push({ name: 'Claude Code', cmd: 'claude', args: ['mcp', 'add', '--scope', scope, NAME, '--', process.execPath, server], remove: ['mcp', 'remove', NAME, '--scope', scope] });
+if (host === 'all' || host === 'codex') targets.push({ name: 'Codex (CLI, desktop app and IDE extension share this)', cmd: 'codex', args: ['mcp', 'add', NAME, '--', process.execPath, server], remove: ['mcp', 'remove', NAME] });
 let failed = false;
 for (const x of targets) {
+  if (x.cmd === 'codex' && scope !== 'user') {
+    try {
+      const result = registerProjectCodex(projectDir, server, process.execPath, NAME, {dryRun: dry});
+      console.log('Codex project ('+projectDir+'): '+result.status+' · '+result.file);
+    } catch (e) { failed = true; console.error('Codex project registration refused: '+e.message); }
+    continue;
+  }
   const shown = `${x.cmd} ${x.args.map(q).join(' ')}`;
   if (dry) { console.log(`[dry run] ${x.name}: ${shown}`); continue; }
   if (!has(x.cmd)) { console.log(`${x.name}: "${x.cmd}" is not installed or not on PATH, so nothing was registered. When it is, run:\n  ${shown}`); continue; }
-  let r = run(x.cmd, x.args);
+  let r = run(x.cmd, x.args, scope === 'user' ? process.cwd() : projectDir);
   // Never silently remove and re-add an existing MCP registration: its settings
   // might contain user-edited permissions, environment variables or timeouts.
   // A conflict is a review step, not consent to overwrite user configuration.

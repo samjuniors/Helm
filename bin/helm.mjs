@@ -107,7 +107,7 @@ try {
     }
   } else if (cmd === 'install' || cmd === 'uninstall') {
     const valid = cmd === 'install'
-      ? new Set(['--dry-run', '--host', '--scope', '--dir', '--in-place', '--force', '--no-path', '--yes'])
+      ? new Set(['--dry-run', '--host', '--scope', '--project', '--dir', '--in-place', '--force', '--no-path', '--yes'])
       : new Set(['--dry-run', '--yes', '--purge']);
     if (Object.keys(flags).some((f) => !valid.has('--' + f))) die('unsupported ' + cmd + ' option; see helm help');
     if (cmd === 'uninstall' && (rest.includes('--dir') || rest.includes('--force'))) die('uninstall cannot target arbitrary paths');
@@ -115,6 +115,9 @@ try {
     process.exit(r.status ?? 1);
   } else if (cmd === 'update') {
     await runSelfUpdate({ args: rest, pluginRoot: PLUGIN_ROOT });
+  } else if (cmd === 'repair') {
+    const r = spawnSync(process.execPath, [path.join(PLUGIN_ROOT, 'server', 'repair.mjs'), ...rest], { stdio:'inherit' });
+    process.exit(r.status ?? 1);
   } else if (cmd === 'download') {
     const r = spawnSync(process.execPath, [path.join(PLUGIN_ROOT, 'download.mjs'), ...rest], { stdio: 'inherit' });
     process.exit(r.status ?? 1);
@@ -126,7 +129,7 @@ try {
     const r = spawnSync(process.execPath, [path.join(kitDirOf(path.resolve(p)), 'kit.mjs'), 'recover', '--hook'], { cwd: p, encoding: 'utf8' });
     console.log((r.stdout || r.stderr || '').trim());
   } else if (!cmd || cmd === 'help' || cmd === '--help') {
-    console.log(`helm\n  init [dir] --name NAME --brief TEXT   create the kit in a project\n  print-config [--host claude|codex|vscode|cursor]   MCP config for your tool\n  upgrade-project [--path P] [--force]   bring a project's copy of the engine up to this plugin version (keeps your records)\n  scan [folder]   read-only look at any project, with or without the kit (--write-config saves suggested checks when the kit is present)\n  guard baseline|check|status [--path P] [--only web,api] [--checks "cmd1,cmd2"]   record, then re-run the project's checks; non-zero exit on a regression\n  consult list|show [id]   read the records your agent kept; consult agree [id] --quote \"...\" records YOUR agreement (agents cannot)\n  adopt [folder] [--name N] [--brief B]   bring an existing or half-built project under the kit on branch kit/integration; never edits your code\n  rules [folder] [--commit]   add or refresh the helm rules block in AGENTS.md (init and adopt do this for you)\n  state [show] [folder]   write docs/STATE.md: parts (frontend, backend, ...), checks, last guard, roadmap\n  version | download [--version X.Y.Z]\n  install [--dry-run] [--host all|claude|codex]   install a managed Helm copy\n  uninstall [--dry-run] [--yes] [--purge]   safely remove only the recorded managed copy\n  update [--check | --dry-run]   securely update a managed Helm installation from GitHub Releases\n  watch [--once] [--interval 2]   live view: where you are, helper runs and their logs\n  runs | approve <runId> | cancel <runId>   helper agent runs (approve is founder-only)\n  ack <KEY> --quote "..." | decide <ID> --quote "..." | milestone close <M> --quote "..."   founder-only, run in a terminal\n  anything else is passed to the project's kit.mjs (continue, recover, status, ...)`);
+    console.log(`helm\n  init [dir] --name NAME --brief TEXT   create the kit in a project\n  print-config [--host claude|codex|vscode|cursor]   MCP config for your tool\n  upgrade-project [--path P] [--force]   bring a project's copy of the engine up to this plugin version (keeps your records)\n  scan [folder]   read-only look at any project, with or without the kit (--write-config saves suggested checks when the kit is present)\n  guard baseline|check|status [--path P] [--only web,api] [--checks "cmd1,cmd2"]   record, then re-run the project's checks; non-zero exit on a regression\n  consult list|show [id]   read the records your agent kept; consult agree [id] --quote \"...\" records YOUR agreement (agents cannot)\n  adopt [folder] [--name N] [--brief B]   bring an existing or half-built project under the kit on branch kit/integration; never edits your code\n  rules [folder] [--commit]   add or refresh the helm rules block in AGENTS.md (init and adopt do this for you)\n  state [show] [folder]   write docs/STATE.md: parts (frontend, backend, ...), checks, last guard, roadmap\n  version | download [--version X.Y.Z]\n  repair [--dry-run | --yes]   restore only Helm's launcher and persistent per-user PATH\n  install [--dry-run] [--host all|claude|codex] [--scope user|project|local] [--project FOLDER]   install a managed Helm copy\n  uninstall [--dry-run] [--yes] [--purge]   safely remove only the recorded managed copy\n  update [--check | --dry-run]   securely update a managed Helm installation from GitHub Releases\n  watch [--once] [--interval 2]   live view: where you are, helper runs and their logs\n  runs | approve <runId> | cancel <runId>   helper agent runs (approve is founder-only)\n  ack <KEY> --quote "..." | decide <ID> --quote "..." | milestone close <M> --quote "..."   founder-only, run in a terminal\n  anything else is passed to the project's kit.mjs (continue, recover, status, ...)`);
   } else {
     const p = project();
     const r = spawnSync(process.execPath, [path.join(kitDirOf(p), 'kit.mjs'), cmd, ...rest], { cwd: p, stdio: 'inherit' });

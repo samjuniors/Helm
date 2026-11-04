@@ -14,6 +14,8 @@ import readline from 'node:readline/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { changeWindowsUserPath } from './server/user-path.mjs';
+import { ensureShellPath, removeShellPath } from './server/posix-path.mjs';
+import { projectCodexStatus, unregisterProjectCodex } from './server/project-mcp.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -23,7 +25,7 @@ const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[
 const die = (m) => { console.error(`setup: ${m}`); process.exit(1); };
 const win = process.platform === 'win32';
 const q = (a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
-const run = (c, args) => (win ? spawnSync([c, ...args.map(q)].join(' '), { shell: true, encoding: 'utf8' }) : spawnSync(c, args, { encoding: 'utf8' }));
+const run = (c, args, cwd = process.cwd()) => (win ? spawnSync([c, ...args.map(q)].join(' '), { shell: true, encoding: 'utf8', cwd }) : spawnSync(c, args, { encoding: 'utf8', cwd }));
 const has = (c) => { const r = run(c, ['--version']); return !r.error && r.status === 0; };
 const dry = flag('dry-run');
 const manageWindowsPath = win && !flag('no-path');
@@ -40,7 +42,14 @@ const meta = (d) => { try { const j = JSON.parse(fs.readFileSync(path.join(d, 'p
 const isOurs = (d) => !!d && !!meta(d) && fs.existsSync(path.join(d, 'server', 'mcp.mjs'));
 const readState = () => { try { return JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch { return null; } };
 const writeState = (s) => { fs.mkdirSync(HOME, { recursive: true }); fs.writeFileSync(STATE, JSON.stringify(s, null, 2)); };
-const registered = (c, name) => { if (!has(c)) return null; const r = run(c, ['mcp', 'list']); return new RegExp(`(^|\\s)${name}(\\s|:|$)`, 'm').test(`${r.stdout}${r.stderr}`); };
+const registered = (c, name, scope = 'user', projectDir = process.cwd()) => {
+  if (c === 'codex' && scope !== 'user') return projectCodexStatus(projectDir, name).status !== 'absent';
+  if (!has(c)) return null;
+  const r = run(c, ['mcp', 'list'], scope === 'user' ? process.cwd() : projectDir);
+  return new RegExp(`(^|\\s)${name}(\\s|:|$)`, 'm').test(`${r.stdout}${r.stderr}`);
+};
+const usableHost = (host, scope) => has(host) || (host === 'codex' && scope !== 'user');
+const scopedProject = (scope) => scope === 'user' ? null : path.resolve(opt('project', process.cwd()));
 const hostTargets = (name) => name === 'all' ? ['claude', 'codex'] : name === 'none' ? [] : ['claude', 'codex'].includes(name) ? [name] : die('--host must be all, none, claude or codex');
 const installedHostTargets = (record) => Array.isArray(record.hosts)
   ? record.hosts.filter((id) => ['claude', 'codex'].includes(id))
@@ -72,15 +81,17 @@ function install() {
   if (cur && isOurs(cur.dir)) {
     if (opt('dir', cur.dir) !== cur.dir) die('Helm already has a managed installation. Custom paths cannot be changed using install; review your existing setup first.');
     if (opt('scope', cur.scope) !== cur.scope) die('Cannot silently change scope of an existing client registration. Review/remove the old registration first.');
+    if (cur.scope !== 'user' && (!cur.projectDir || (opt('project', cur.projectDir) !== cur.projectDir))) die('Recorded project scope cannot be moved silently; review the original project registration first.');
     const selected = hostTargets(opt('host', 'all'));
     const owned = new Set(installedHostTargets(cur));
     const added = [];
     console.log(`Already installed: ${NAME} ${meta(cur.dir).version} at ${cur.dir}. No plugin files will be copied or overwritten.`);
     for (const host of selected) {
-      if (!has(host)) { console.log(`  ${host}: CLI unavailable; skipped (no registration written).`); continue; }
-      const exists = registered(host, NAME);
+      if (!usableHost(host, cur.scope)) { console.log(`  ${host}: CLI unavailable; skipped (no registration written).`); continue; }
+      const exists = registered(host, NAME, cur.scope, cur.projectDir);
       if (exists === true) {
         if (!owned.has(host)) die(`${host} already has an unrecognized ${NAME} registration; refusing to take ownership or overwrite it. Review it manually.`);
+        if (host === 'codex' && cur.scope !== 'user' && projectCodexStatus(cur.projectDir, NAME).status !== 'managed') die('Codex project registration is not Helm-owned; refusing to modify it.');
         console.log(`  ${host}: existing Helm registration left unchanged.`);
         continue;
       }
@@ -91,6 +102,7 @@ function install() {
         added.push(host);
       }
     }
+    if (!dry) writeShims(cur.dir); // Restore a missing Helm launcher without copying or deleting plugin files.
     if (manageWindowsPath && !dry && !cur.inPlace) {
       try {
         const result = changeWindowsUserPath(BIN_DIR, 'add');
@@ -100,12 +112,20 @@ function install() {
         }
       } catch (e) { console.warn(`Could not update Windows user PATH: ${e.message}\n${pathHelp()}`); }
     }
+    if (!win && !flag('no-path') && !dry && !cur.inPlace) {
+      try { const patched = ensureShellPath(); if (patched.changed.length) console.log('Persisted Helm launcher PATH in '+patched.changed.join(', '));
+        if (patched.files.length) writeState({ ...readState(), pathProfiles: [...new Set([...(cur.pathProfiles || []),...patched.files])] });
+      } catch (e) { console.warn('Could not modify the user shell profile safely: '+e.message); }
+    }
     if (!dry && added.length) writeState({ ...readState(), hosts: [...new Set([...owned, ...added])], configuredAt: new Date().toISOString() });
     if (dry) console.log('  Preview only. Nothing was changed.');
     else console.log('  Setup finished. Restart newly connected clients, then run helm doctor.');
     return;
   }
   if (cur && !isOurs(cur.dir)) die('An existing install record references a missing or invalid Helm folder. Review ~/.helm/install.json; refusing to overwrite.');
+  const scope = opt('scope', 'user');
+  const projectDir = scopedProject(scope);
+  if (projectDir && (!fs.existsSync(projectDir) || !fs.statSync(projectDir).isDirectory())) die('Project-scoped installation requires an existing --project folder.');
   const inPlace = flag('in-place');
   const target = inPlace ? here : path.resolve(opt('dir', path.join(HOME, 'plugin')));
   if (!inPlace && (target === here || target.startsWith(here + path.sep) || here.startsWith(target + path.sep) || target === path.parse(target).root || target === os.homedir())) die('Source and target must be separate, safe directories.');
@@ -115,7 +135,7 @@ function install() {
     for (const f of shimFiles()) if (fs.existsSync(f) && !fs.readFileSync(f, 'utf8').includes('HELM-MANAGED-LAUNCHER')) die(`refusing to overwrite existing non-Helm launcher: ${f}`);
     {
       const targets = hostTargets(opt('host', 'all'));
-      for (const c of targets) if (['claude', 'codex'].includes(c) && registered(c, NAME) === true) die(`MCP server ${NAME} is already registered in ${c} without an install record. Refusing to replace it. Inspect registration first, or explicitly use --force.`);
+      for (const c of targets) if (['claude', 'codex'].includes(c) && registered(c, NAME, scope, projectDir) === true) die(`MCP server ${NAME} is already registered in ${c} without an install record. Refusing to replace it. Inspect registration first, or explicitly use --force.`);
     }
   }
   console.log(`${dry ? '[dry run] ' : ''}Install ${NAME} ${meta(here).version}\n  plugin folder: ${target}${inPlace ? ' (this folder, nothing copied)' : ''}\n  launcher:      ${shimFiles()[0]}\n  hosts:         ${opt('host', 'all')} (Claude Code and Codex, whichever are installed)`);
@@ -124,12 +144,12 @@ function install() {
     fs.mkdirSync(target, { recursive: true });
     fs.cpSync(here, target, { recursive: true, filter: (f) => { const rel = path.relative(here, f); return !(/(^|[\\/])(node_modules|\.git|dist)([\\/]|$)/.test(rel) || /-backup-/.test(rel) || rel === 'tests/package-lock.json'); } });
   }
-  const args = [path.join(inPlace ? here : (dry ? here : target), 'install.mjs'), '--host', opt('host', 'all'), '--scope', opt('scope', 'user'), ...(dry ? ['--dry-run'] : [])];
+  const args = [path.join(inPlace ? here : (dry ? here : target), 'install.mjs'), '--host', opt('host', 'all'), '--scope', opt('scope', 'user'), ...(projectDir ? ['--project', projectDir] : []), ...(dry ? ['--dry-run'] : [])];
   const r = spawnSync(process.execPath, args, { stdio: 'inherit' });
   if (r.status !== 0) die('registration did not complete (see above). Nothing else was changed; fix it and run install again.');
   if (dry) { console.log(`\n[dry run] nothing was changed. The real run registers ${path.join(target, 'server', 'mcp.mjs')} (the permanent copy), not the path shown above.`); return; }
   writeShims(target);
-  const newState = { name: NAME, dir: target, inPlace, scope: opt('scope', 'user'), host: opt('host', 'all'), hosts: hostTargets(opt('host', 'all')).filter((id) => has(id) && registered(id, NAME) === true), installedAt: new Date().toISOString(), version: meta(target).version };
+  const newState = { name: NAME, dir: target, inPlace, scope, ...(projectDir ? { projectDir } : {}), host: opt('host', 'all'), hosts: hostTargets(opt('host', 'all')).filter((id) => usableHost(id, scope) && registered(id, NAME, scope, projectDir) === true), installedAt: new Date().toISOString(), version: meta(target).version };
   writeState(newState);
   if (manageWindowsPath && !inPlace) {
     try {
@@ -137,6 +157,11 @@ function install() {
       if (added.changed) writeState({ ...newState, pathManaged: true });
       console.log(added.changed ? `Added ${BIN_DIR} to Windows user PATH; open a new terminal to use ${NAME}.` : `Windows user PATH already contains ${BIN_DIR}.`);
     } catch (e) { console.warn(`Unable to update Windows user PATH automatically: ${e.message}\n${pathHelp()}`); }
+  }
+  if (!win && !flag('no-path') && !inPlace) {
+    try { const patched = ensureShellPath(); if (patched.files.length) writeState({ ...readState(), pathProfiles: patched.files });
+      if (patched.changed.length) console.log('Persisted Helm PATH in '+patched.changed.join(', '));
+    } catch (e) { console.warn('Could not update shell profile: '+e.message); }
   }
   console.log(`\nInstalled ${NAME} ${meta(target).version}.\nNext:\n 1. Restart Claude Code / Codex so they load it. Check in Codex: codex mcp list\n 2. ${pathHelp()}\n 3. In a project: ${NAME} init . --name "My App" --brief "..."   (new product)   or   ${NAME} adopt .   (existing project, clean git tree)\n 4. For future releases: run helm update --check, helm update --dry-run, then helm update. Antigravity is wired per project by init/adopt.`);
 }
@@ -149,7 +174,16 @@ function update() {
   const r = spawnSync(process.execPath, args, { stdio: 'inherit' });
   if (r.status !== 0) process.exit(r.status ?? 1);
   if (dry) return;
-  if (meta(cur.dir)) { writeShims(cur.dir); writeState({ ...cur, version: meta(cur.dir).version, updatedAt: new Date().toISOString() }); }
+  if (meta(cur.dir)) {
+    writeShims(cur.dir);
+    writeState({ ...cur, version: meta(cur.dir).version, updatedAt: new Date().toISOString() });
+    if (!cur.inPlace) {
+      try {
+        if (win) { const status = changeWindowsUserPath(BIN_DIR,'add'); if (status.changed) writeState({ ...readState(), pathManaged:true }); }
+        else { const status = ensureShellPath(); if (status.files.length) writeState({ ...readState(), pathProfiles:[...new Set([...(cur.pathProfiles||[]),...status.files])] }); }
+      } catch(e) { console.warn('Helm updated but launcher PATH needs attention: '+e.message+'\nRun helm repair --dry-run.'); }
+    }
+  }
   console.log(`\nUpdated. Registrations did not change (they point at ${cur.dir}). Restart your tools. Your projects need nothing, except projects the plugin created: run "${NAME} upgrade-project" in them if the release notes say so.`);
 }
 
@@ -167,6 +201,7 @@ async function uninstall() {
   const cur = readState();
   if (!cur) { console.log(`Nothing to uninstall: no install record at ${STATE}. (If you registered it by hand: claude mcp remove ${NAME} and codex mcp remove ${NAME}.)`); return; }
   if (cur.name !== NAME || typeof cur.dir !== 'string' || !['user','local','project'].includes(cur.scope) || !['all','claude','codex','none'].includes(cur.host)) die('Invalid install record; refusing to remove anything.');
+  if (cur.scope !== 'user' && installedHostTargets(cur).length && (!cur.projectDir || !fs.existsSync(cur.projectDir))) die('Original project directory is missing; cannot safely unregister project-scoped MCP settings.');
   const rm = !cur.inPlace && safeToDelete(cur.dir);
   console.log(`${dry ? '[dry run] ' : ''}Uninstall ${cur.name}:\n  unregister from Claude Code and Codex (if registered)\n  ${rm ? `delete the plugin folder ${cur.dir}` : `keep the folder ${cur.dir} (${cur.inPlace ? 'it was installed in place' : 'not recognised as ours, so it is not deleted'})`}\n  delete the launcher and the install record\n  ${flag('purge') ? `remove only recognised Helm update backups in ${HOME} (not unrelated files)` : 'keep update backups (add --purge to delete them)'}\nNot touched: your projects, their .agents/ folders, git history, AGENTS.md. Those are yours.`);
   if (dry) return;
@@ -174,8 +209,13 @@ async function uninstall() {
   const registeredHosts = installedHostTargets(cur);
   for (const [c, args] of [['claude', ['mcp', 'remove', cur.name, '--scope', cur.scope]], ['codex', ['mcp', 'remove', cur.name]]]) {
     if (!registeredHosts.includes(c)) continue;
+    if (c === 'codex' && cur.scope !== 'user') {
+      try { const result=unregisterProjectCodex(cur.projectDir,cur.name); console.log('Codex project: '+result.status); }
+      catch(e){die('Refusing unsafe project Codex removal: '+e.message);}
+      continue;
+    }
     if (!has(c)) { console.log(`${c}: not installed here, skipped.`); continue; }
-    const r = run(c, args); console.log(`${c}: ${r.status === 0 ? 'unregistered' : 'was not registered (or already removed)'}.`);
+    const r = run(c, args, cur.scope === 'user' ? process.cwd() : cur.projectDir); console.log(`${c}: ${r.status === 0 ? 'unregistered' : 'was not registered (or already removed)'}.`);
   }
   try { process.chdir(os.homedir()); } catch { /* ignore */ }
   if (rm) { fs.rmSync(cur.dir, { recursive: true, force: true }); console.log(`Deleted ${cur.dir}.`); }
@@ -197,6 +237,10 @@ async function uninstall() {
       if (removed.changed) console.log(`Removed Helm's PATH entry from Windows user PATH; reopen your terminal.`);
     } catch (e) { console.warn(`Could not remove Helm's user PATH entry automatically: ${e.message}\nYou can remove ${BIN_DIR} manually from your user PATH.`); }
   }
+  if (!win && Array.isArray(cur.pathProfiles)) {
+    try { removeShellPath(cur.pathProfiles); console.log('Removed only Helm-managed shell PATH entries.'); }
+    catch(e) { console.warn('Could not clean shell profile safely: '+e.message); }
+  }
   fs.rmSync(STATE, { force: true });
   try { fs.rmdirSync(BIN_DIR); } catch { /* not empty or gone */ }
   if (flag('purge') && path.basename(HOME) === `.${NAME}` && path.dirname(HOME) === os.homedir()) {
@@ -216,7 +260,7 @@ function status() {
   if (!cur) { console.log(`${NAME} is not installed on this computer (no record at ${STATE}).\nInstall: node setup.mjs install`); return; }
   const ok = isOurs(cur.dir);
   console.log(`${NAME} ${ok ? meta(cur.dir).version : '(folder missing or damaged)'} installed at ${cur.dir}${cur.inPlace ? ' (in place)' : ''}\nSince ${cur.installedAt?.slice(0, 10)}${cur.updatedAt ? `, updated ${cur.updatedAt.slice(0, 10)}` : ''}`);
-  for (const [label, c] of [['Claude Code', 'claude'], ['Codex', 'codex']]) { const r = registered(c, cur.name); console.log(`${label.padEnd(12)} ${r === null ? 'not installed on this computer' : r ? 'registered' : 'NOT registered (run: node setup.mjs install --force)'}`); }
+  for (const [label, c] of [['Claude Code', 'claude'], ['Codex', 'codex']]) { const r = registered(c, cur.name, cur.scope, cur.projectDir); console.log(`${label.padEnd(12)} ${r === null ? 'not installed on this computer' : r ? 'registered' : 'NOT registered (run: node setup.mjs install --force)'}`); }
   console.log(`Launcher     ${shimFiles().every((f) => fs.existsSync(f)) ? shimFiles()[0] : 'missing'}\n${pathHelp()}`);
   console.log(`This folder is ${meta(here)?.version}${meta(here) && ok && meta(here).version !== meta(cur.dir).version ? ` (differs from the installed one: run node setup.mjs update here, or helm update in your managed installation)` : ''}.`);
 }
@@ -226,7 +270,7 @@ async function menu() {
   await runWizard();
 }
 
-const help = () => console.log(`${NAME} setup\n  node setup.mjs install | update | uninstall | status | wizard (no argument: guided wizard)\n  --host all|claude|codex|none  --scope user|project|local  --dir <folder>  --in-place\n  --dry-run  --force  --yes  --purge  --no-path (Windows: do not modify user PATH)\nWindows: double-click setup.cmd. Mac/Linux: ./setup.sh`);
+const help = () => console.log(`${NAME} setup\n  node setup.mjs install | update | uninstall | status | wizard (no argument: guided wizard)\n  --host all|claude|codex|none  --scope user|project|local  --dir <folder>  --in-place\n  --project /absolute/project (for project/local scope)\n  --dry-run  --force  --yes  --purge  --no-path (leave user PATH unchanged)\nWindows: double-click setup.cmd. Mac/Linux: ./setup.sh`);
 if (flag('help') || cmd === 'help') help();
 else if (cmd === 'install') install();
 else if (cmd === 'update') update();

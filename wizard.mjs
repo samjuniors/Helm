@@ -151,7 +151,7 @@ export async function runWizard(){
       else if(choice==='6')manualInstructions(current.clients,path.join(current.installed.status==='installed'?current.installed.record.dir:root,'server','mcp.mjs'));
       else log('Choose 1-6 or q.');
     }
-  }catch(e){if(e.cancelled||e.code==='ERR_USE_AFTER_CLOSE')log('\nSetup closed.');else throw e;}
+  }catch(e){if(e.cancelled||e.code==='ERR_USE_AFTER_CLOSE'||e.message==='Aborted with Ctrl+D')log('\nSetup closed.');else throw e;}
   finally{rl.close();}
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
