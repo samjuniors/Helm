@@ -186,7 +186,7 @@ Review the [latest release](https://github.com/samjuniors/Helm/releases/latest) 
 
 Helm is retired and is not accepting a new feature roadmap. Please direct new project-orchestration features, design ideas, and development contributions to [Orbit Core](https://github.com/samjuniors/Orbit-Core). This repository's existing contribution and security documentation is retained for reference.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, branch and pull-request guidelines, and testing expectations. For a bug or feature idea, [open an issue](https://github.com/samjuniors/Helm/issues). Please report security concerns using the [security policy](SECURITY.md), not a public issue.
+The previous [contribution guide](CONTRIBUTING.md) is preserved as historical documentation. For new features and issues, use [Orbit Core's issue tracker](https://github.com/samjuniors/Orbit-Core/issues). Please report any security concern affecting existing Helm installations using the [Helm security policy](SECURITY.md), not a public issue.
 
 ## Support Helm
 
