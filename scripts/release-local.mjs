@@ -20,7 +20,8 @@ if(!fs.existsSync(notes))throw Error('Custom release notes missing: '+notes);
 const assets=[path.join(root,'dist','helm-'+tag+'.zip'),path.join(root,'dist','helm-'+tag+'.tgz')];
 const sums=path.join(root,'dist','SHA256SUMS');
 const exec=(cmd,args,options={})=>{
-  const r=spawnSync(cmd,args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:300000,...options});
+  const executable=process.platform==='win32'&&cmd==='npm'?'npm.cmd':cmd;
+  const r=spawnSync(executable,args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:300000,shell:process.platform==='win32'&&cmd==='npm',...options});
   if(r.error||r.status!==0)throw Error(cmd+' '+args.join(' ')+' failed: '+String(r.stderr||r.error||r.stdout||r.status).slice(0,1400));
   return (r.stdout||'').trim();
 };
@@ -60,13 +61,14 @@ function ensureTag(head){
   exec('git',['push','origin','refs/tags/'+tag],{stdio:'inherit'});
 }
 console.log('Helm '+tag+' · '+(dry?'preview':publish?'publish locally':'local release build'));
-console.log('Tests: npm run check; npm test; npm run test:integration; npm run pack:release');
+console.log('Tests: npm run check; npm test; npm run test:integration; npm run audit:repo; npm run pack:release');
 console.log('Artifacts: '+assets.map(a=>path.relative(root,a)).join(', ')+' and dist/SHA256SUMS');
 if(dry){console.log('Preview only: no tests, packaging, git tags or GitHub changes performed.');process.exit(0);}
 if(publish)mainOnly(); // Fail early: never run/commit a release from a stale or dirty checkout.
 exec('npm',['run','check'],{stdio:'inherit'});
 exec('npm',['test'],{stdio:'inherit'});
 exec('npm',['run','test:integration'],{stdio:'inherit'});
+exec('npm',['run','audit:repo'],{stdio:'inherit'});
 exec('npm',['run','pack:release'],{stdio:'inherit'});
 verifyAssets();
 if(!publish){console.log('Local artifacts built and verified. To publish after review: helm release --publish --yes');process.exit(0);}

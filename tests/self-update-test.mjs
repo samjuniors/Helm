@@ -38,6 +38,7 @@ const packageFiles = (version = '0.8.0') => {
     ['package.json', JSON.stringify({name:'@samjuniors/helm',version})],
     ['server/mcp.mjs', sampleServer],
     ['server/user-path.mjs', fs.readFileSync(path.join(root,'server/user-path.mjs'))],
+    ['server/path-repair.mjs', fs.readFileSync(path.join(root,'server/path-repair.mjs'))],
     ['setup.mjs',fs.readFileSync(path.join(root,'setup.mjs'))],
     ['update.mjs',fs.readFileSync(path.join(root,'update.mjs'))],
     ['bin/helm.mjs','// test CLI\n'],
