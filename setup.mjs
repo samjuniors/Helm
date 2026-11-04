@@ -180,7 +180,7 @@ function update() {
     writeState({ ...cur, version: meta(cur.dir).version, updatedAt: new Date().toISOString() });
     if (!cur.inPlace) {
       try {
-        if (win) { const status = changeWindowsUserPath(BIN_DIR,'add'); if (status.changed) writeState({ ...readState(), pathManaged:true }); }
+        if (win) { if (cur.pathManaged === true) changeWindowsUserPath(BIN_DIR,'add'); }
         else { const status = ensureShellPath(); if (status.files.length) writeState({ ...readState(), pathProfiles:[...new Set([...(cur.pathProfiles||[]),...status.files])] }); }
       } catch(e) { console.warn('Helm updated but launcher PATH needs attention: '+e.message+'\nRun helm repair --dry-run.'); }
     }
