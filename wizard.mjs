@@ -66,7 +66,7 @@ const manualInstructions=(clients,server)=>{
     if(c.id==='claude_desktop')log('    Quit Claude Desktop before editing. MSIX installations can use different private settings.');
   }
   log('  MCP server to register: '+server);
-  log('  Use helm print-config --host codex|claude|cursor|vscode for sample syntax.');
+  log('  Use helm connect --host all --path <project> --dry-run then --yes for project-only Claude Code/Codex.\n  Use helm print-config --host codex|claude|cursor|vscode for sample syntax.');
 };
 async function guidedInstall(rl,snapshot){
   const {installed,clients}=snapshot;
@@ -88,8 +88,7 @@ async function guidedInstall(rl,snapshot){
   }else{
     folder=path.resolve(await ask(rl,'  Installation folder (Enter for '+defaultDir+'): ',defaultDir));
   }
-  const addPath=process.platform==='win32'?
-    (await ask(rl,'  Add Helm to your Windows user PATH? [Y/n]: ','Y')).toLowerCase()!=='n':false;
+  const addPath=(await ask(rl,'  Persist Helm on your user PATH (Windows registry or shell profile)? [Y/n]: ','Y')).toLowerCase()!=='n';
   const args=['install','--host',host,...(installed.status==='installed'?[]:['--dir',folder]),...(!addPath?['--no-path']:[])];
   log('\n── Review changes before approval ──');
   if(call([...args,'--dry-run'])!==0){log('Preview failed: no changes applied.');return;}
@@ -142,7 +141,7 @@ export async function runWizard(){
       log('  5) Guided uninstall');
       log('  6) IDE / desktop connection instructions');
       log('  q) Quit');
-      const choice=await ask(rl,'  Choose [1-6 or q]: ');
+      const choice=await ask(rl,'  Choose [1-7 or q]: ');
       if(choice==='1')await guidedInstall(rl,current);
       else if(choice==='2')await checkOrUpdate(rl,current.installed);
       else if(choice==='3')await checkOrUpdate(rl,current.installed,true);
